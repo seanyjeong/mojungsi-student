@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { BottomNav } from "@/components/bottom-nav";
+import { Header } from "@/components/header";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,13 +30,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 pb-20">
-          <header className="bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 sticky top-0 z-10">
-            <div className="max-w-2xl mx-auto px-4 py-4">
-              <h1 className="text-xl font-bold text-zinc-900 dark:text-white">
-                정시 환산점수 계산기
-              </h1>
-            </div>
-          </header>
+          <Header />
           <main className="max-w-2xl mx-auto px-4 py-6">{children}</main>
         </div>
         <BottomNav />

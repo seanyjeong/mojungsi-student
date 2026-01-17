@@ -67,3 +67,50 @@ export async function getUniversityDetail(id: number) {
 
   return response.json();
 }
+
+// ========== Auth API ==========
+
+export async function getKakaoLoginUrl(): Promise<{ url: string }> {
+  const response = await fetch(`${API_BASE_URL}/saas/auth/kakao/login-url`);
+
+  if (!response.ok) {
+    throw new Error("Failed to get Kakao login URL");
+  }
+
+  return response.json();
+}
+
+export async function kakaoCallback(code: string): Promise<{
+  accessToken: string;
+  user: {
+    id: number;
+    nickname: string;
+    email: string | null;
+    profileImage: string | null;
+  };
+}> {
+  const response = await fetch(
+    `${API_BASE_URL}/saas/auth/kakao/callback?code=${encodeURIComponent(code)}`
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Login failed");
+  }
+
+  return response.json();
+}
+
+export async function getMe(token: string) {
+  const response = await fetch(`${API_BASE_URL}/saas/auth/me`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to get user info");
+  }
+
+  return response.json();
+}
