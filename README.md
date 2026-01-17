@@ -2,6 +2,8 @@
 
 체대입시 학생들을 위한 수능 환산점수 계산 서비스 프론트엔드
 
+**Version:** v0.1.1
+
 ## 기술 스택
 
 - **Framework**: Next.js 15 (App Router)
