@@ -46,6 +46,29 @@ export async function calculateBatch(
   return response.json();
 }
 
+// 전체 대학 환산점수 계산 (U_IDs 필요 없음)
+export async function calculateAll(
+  scores: ScoreForm,
+  year: number = 2026
+): Promise<{ success: boolean; results: Array<{ U_ID: number; 환산점수: number }>; count: number }> {
+  const response = await fetch(`${API_BASE_URL}/calculate/all`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      year,
+      scores,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to calculate all scores");
+  }
+
+  return response.json();
+}
+
 export async function getUniversities(yearId: number = 2026) {
   const response = await fetch(
     `${API_BASE_URL}/universities?yearId=${yearId}`

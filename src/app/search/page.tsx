@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth, getToken } from "@/lib/auth";
-import { getUniversities, calculateBatch, toggleSaveUniversity, checkIsSaved } from "@/lib/api";
+import { getUniversities, calculateAll, toggleSaveUniversity, checkIsSaved } from "@/lib/api";
 import { loadScores } from "@/lib/storage";
 import { Heart, Filter, MapPin, Users, TrendingUp, ChevronDown, ChevronUp } from "lucide-react";
 
@@ -19,7 +19,37 @@ interface University {
   실기반영비율: number;
   과목반영?: string;
   선택과목?: string;
-  전년도변경?: string;
+}
+
+// API 응답을 플랫 구조로 변환
+function transformApiResponse(apiData: any[]): University[] {
+  const result: University[] = [];
+
+  for (const univ of apiData) {
+    if (!univ.departments) continue;
+
+    for (const dept of univ.departments) {
+      const config = dept.formula_configs?.display_config || {};
+      const ratios = config.비율 || {};
+
+      result.push({
+        U_ID: dept.dept_id,
+        U_NM: univ.univ_name,
+        D_NM: dept.dept_name,
+        지역: univ.region || "미정",
+        모집인원: dept.recruit_count || 0,
+        모집군: dept.recruit_group ? `${dept.recruit_group}군` : "",
+        실기종목: config.실기종목 || "",
+        수능반영비율: parseInt(ratios.수능) || 0,
+        내신반영비율: parseInt(ratios.내신) || 0,
+        실기반영비율: parseInt(ratios.실기) || 0,
+        과목반영: config.과목 ? JSON.stringify(config.과목) : undefined,
+        선택과목: config.선택?.조건 || undefined,
+      });
+    }
+  }
+
+  return result;
 }
 
 interface CalculatedUniv extends University {
@@ -43,7 +73,8 @@ export default function SearchPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getUniversities(2026);
+      const rawData = await getUniversities(2027);
+      const data = transformApiResponse(rawData);
       const scores = loadScores();
 
       let calculated: CalculatedUniv[] = data;
@@ -51,8 +82,8 @@ export default function SearchPage() {
       // Calculate scores if user has entered scores
       if (scores && Object.keys(scores).length > 0) {
         try {
-          const results = await calculateBatch(scores, 2026);
-          const scoreMap = new Map(results.map((r: any) => [r.U_ID, r.환산점수]));
+          const response = await calculateAll(scores, 2027);
+          const scoreMap = new Map(response.results.map((r: any) => [r.U_ID, r.환산점수]));
           calculated = data.map((u: University) => ({
             ...u,
             calculatedScore: scoreMap.get(u.U_ID),
@@ -295,11 +326,6 @@ function UniversityCard({
         <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-medium">
           {univ.모집군}
         </span>
-        {univ.전년도변경 && (
-          <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-lg text-xs">
-            <TrendingUp className="w-3 h-3" /> {univ.전년도변경}
-          </span>
-        )}
       </div>
 
       {/* Ratio Tags */}

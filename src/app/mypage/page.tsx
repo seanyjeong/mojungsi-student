@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, getToken } from "@/lib/auth";
 import { getProfile, updateProfile, getScores, saveScore } from "@/lib/api";
+import { saveScores as saveToStorage } from "@/lib/storage";
+import { ScoreForm } from "@/types";
 import { User, Pencil, Save, Book, Calculator, Globe, Landmark, Search } from "lucide-react";
 
 const EXAM_TYPES = ["3월모의", "6월모의", "9월모의", "수능"];
@@ -105,7 +107,7 @@ export default function MyPage() {
     const token = getToken();
     if (!token) return;
     try {
-      const data = await getScores(token);
+      const data = await getScores(token, 2027);
       const map: Record<string, ScoreData> = {};
       data.forEach((s: any) => {
         map[s.exam_type] = s.scores || {};
@@ -128,13 +130,50 @@ export default function MyPage() {
         gender: profile.gender,
       });
       setEditMode(false);
-      setMessage("프로필이 저장되었습니다");
-      setTimeout(() => setMessage(""), 2000);
+      setMessage("✅ 프로필이 저장되었습니다!");
+      setTimeout(() => setMessage(""), 3000);
     } catch (err) {
-      alert("저장 실패");
+      setMessage("❌ 프로필 저장에 실패했습니다");
+      setTimeout(() => setMessage(""), 3000);
     } finally {
       setSaving(false);
     }
+  };
+
+  // 한글 형식을 ScoreForm 형식으로 변환
+  const convertToScoreForm = (data: ScoreData): ScoreForm => {
+    return {
+      korean: {
+        subject: data.국어_선택과목 || "화법과작문",
+        std: data.국어_표준점수 || 0,
+        pct: data.국어_백분위 || 0,
+        grade: data.국어_등급 || 0,
+      },
+      math: {
+        subject: data.수학_선택과목 || "미적분",
+        std: data.수학_표준점수 || 0,
+        pct: data.수학_백분위 || 0,
+        grade: data.수학_등급 || 0,
+      },
+      english: {
+        grade: data.영어_등급 || 5,
+      },
+      history: {
+        grade: data.한국사_등급 || 4,
+      },
+      inquiry1: {
+        subject: data.탐구1_선택과목 || "",
+        std: data.탐구1_표준점수 || 0,
+        pct: data.탐구1_백분위 || 0,
+        grade: data.탐구1_등급 || 0,
+      },
+      inquiry2: {
+        subject: data.탐구2_선택과목 || "",
+        std: data.탐구2_표준점수 || 0,
+        pct: data.탐구2_백분위 || 0,
+        grade: data.탐구2_등급 || 0,
+      },
+    };
   };
 
   const handleSaveScore = async () => {
@@ -142,12 +181,20 @@ export default function MyPage() {
     if (!token) return;
     setScoreSaving(true);
     try {
-      await saveScore(token, selectedExam, currentScore);
+      await saveScore(token, selectedExam, currentScore, 2027);
       setScores(prev => ({ ...prev, [selectedExam]: currentScore }));
-      setMessage("성적이 저장되었습니다");
-      setTimeout(() => setMessage(""), 2000);
+
+      // 수능 성적이면 localStorage에도 저장 (대학검색에서 사용)
+      if (selectedExam === "수능") {
+        const scoreForm = convertToScoreForm(currentScore);
+        saveToStorage(scoreForm);
+      }
+
+      setMessage("✅ 성적이 저장되었습니다!");
+      setTimeout(() => setMessage(""), 3000);
     } catch (err) {
-      alert("저장 실패");
+      setMessage("❌ 저장에 실패했습니다");
+      setTimeout(() => setMessage(""), 3000);
     } finally {
       setScoreSaving(false);
     }
@@ -204,8 +251,13 @@ export default function MyPage() {
         </button>
       </div>
 
+      {/* Toast Notification */}
       {message && (
-        <div className="bg-green-100 text-green-700 px-4 py-2 rounded-lg text-sm text-center">
+        <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-xl shadow-2xl text-base font-semibold transform transition-all duration-300 ${
+          message.includes("✅")
+            ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white"
+            : "bg-gradient-to-r from-red-500 to-rose-500 text-white"
+        }`}>
           {message}
         </div>
       )}

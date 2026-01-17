@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { getKakaoLoginUrl, getMe } from "./api";
 
 export interface User {
@@ -14,8 +14,7 @@ export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    // 로컬 스토리지에서 사용자 정보 복원
+  const loadUserFromStorage = useCallback(() => {
     const storedUser = localStorage.getItem("user");
     const token = localStorage.getItem("accessToken");
 
@@ -23,12 +22,40 @@ export function useAuth() {
       try {
         setUser(JSON.parse(storedUser));
       } catch {
-        // 파싱 실패 시 로그아웃 처리
-        logout();
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("user");
+        setUser(null);
       }
+    } else {
+      setUser(null);
     }
-    setIsLoading(false);
   }, []);
+
+  useEffect(() => {
+    // 초기 로드
+    loadUserFromStorage();
+    setIsLoading(false);
+
+    // storage 이벤트 리스닝 (다른 탭에서 변경 시)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "user" || e.key === "accessToken") {
+        loadUserFromStorage();
+      }
+    };
+
+    // 커스텀 이벤트 리스닝 (같은 탭 내 다른 컴포넌트에서 변경 시)
+    const handleAuthChange = () => {
+      loadUserFromStorage();
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("auth-change", handleAuthChange);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("auth-change", handleAuthChange);
+    };
+  }, [loadUserFromStorage]);
 
   const login = async () => {
     try {

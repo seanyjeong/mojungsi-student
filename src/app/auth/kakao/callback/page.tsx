@@ -33,6 +33,9 @@ function CallbackContent() {
         localStorage.setItem("accessToken", result.accessToken);
         localStorage.setItem("user", JSON.stringify(result.user));
 
+        // 다른 컴포넌트에 로그인 상태 변경 알림
+        window.dispatchEvent(new Event("auth-change"));
+
         setStatus("success");
 
         // 1초 후 메인 페이지로 이동
