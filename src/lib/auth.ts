@@ -71,6 +71,8 @@ export function useAuth() {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("user");
     setUser(null);
+    // 홈으로 이동
+    window.location.href = "/";
   };
 
   const refreshUser = async () => {

@@ -86,7 +86,13 @@ export default function MyUniversitiesPage() {
   }
 
   if (!isLoggedIn) {
-    return null;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
+        <Heart className="w-16 h-16 text-zinc-300 mb-4" />
+        <h2 className="text-xl font-bold mb-2">로그인이 필요합니다</h2>
+        <p className="text-zinc-500 mb-4">저장 대학 관리를 위해<br />로그인해 주세요</p>
+      </div>
+    );
   }
 
   return (

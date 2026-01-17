@@ -265,6 +265,16 @@ export default function SearchPage() {
     );
   }
 
+  if (!isLoggedIn) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
+        <Heart className="w-16 h-16 text-zinc-300 mb-4" />
+        <h2 className="text-xl font-bold mb-2">로그인이 필요합니다</h2>
+        <p className="text-zinc-500 mb-4">대학 검색 및 환산점수 확인을 위해<br />로그인해 주세요</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 pb-20">
       {/* Search Bar */}
