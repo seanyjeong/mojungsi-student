@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { Calculator, Search, Heart, Dumbbell, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const APP_VERSION = "0.2.0";
+
 export function BottomNav() {
   const pathname = usePathname();
 
@@ -18,7 +20,7 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-800 border-t border-zinc-200 dark:border-zinc-700 z-20">
-      <div className="max-w-2xl mx-auto px-4 py-3 flex justify-around">
+      <div className="max-w-2xl mx-auto px-4 py-3 flex justify-around relative">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
@@ -38,6 +40,10 @@ export function BottomNav() {
             </Link>
           );
         })}
+        {/* Version Badge */}
+        <span className="absolute right-2 top-1 text-[10px] text-zinc-400 dark:text-zinc-500">
+          v{APP_VERSION}
+        </span>
       </div>
     </nav>
   );
