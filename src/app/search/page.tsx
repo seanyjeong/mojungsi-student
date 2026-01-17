@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth, getToken } from "@/lib/auth";
-import { getUniversities, calculateAll, toggleSaveUniversity, checkIsSaved, getProfile } from "@/lib/api";
-import { loadScores } from "@/lib/storage";
+import { getUniversities, calculateAll, toggleSaveUniversity, checkIsSaved, getProfile, getScores } from "@/lib/api";
 import { Heart, Filter, MapPin, Users, TrendingUp, ChevronDown, ChevronUp } from "lucide-react";
 
 interface SubjectDisplay {
@@ -102,7 +101,22 @@ export default function SearchPage() {
     try {
       const rawData = await getUniversities(2026);
       const data = transformApiResponse(rawData);
-      const scores = loadScores();
+
+      // 로그인 시에만 DB에서 성적 가져와서 계산 (비로그인은 계산 안 함)
+      let scores = null;
+      const token = getToken();
+      if (token) {
+        try {
+          const dbScores = await getScores(token, 2026);
+          // 가장 최근 시험 성적 사용
+          if (dbScores && dbScores.length > 0) {
+            scores = dbScores[0].scores;
+          }
+        } catch {
+          // DB 실패 시 계산 없이 진행
+        }
+      }
+      // 로그인 안 되어 있으면 scores는 null이므로 계산 안 됨
 
       let calculated: CalculatedUniv[] = data;
 
