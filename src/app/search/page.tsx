@@ -3,7 +3,44 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth, getToken } from "@/lib/auth";
 import { getUniversities, calculateAll, toggleSaveUniversity, checkIsSaved, getProfile, getScores } from "@/lib/api";
+import { ScoreForm } from "@/types";
 import { Heart, Filter, MapPin, Users, TrendingUp, ChevronDown, ChevronUp } from "lucide-react";
+
+// DB 형식(한글)을 API 형식(ScoreForm)으로 변환
+function convertDbScoresToScoreForm(data: any): ScoreForm {
+  return {
+    korean: {
+      subject: data.국어_선택과목 || "화법과작문",
+      std: data.국어_표준점수 || 0,
+      pct: data.국어_백분위 || 0,
+      grade: data.국어_등급 || 0,
+    },
+    math: {
+      subject: data.수학_선택과목 || "미적분",
+      std: data.수학_표준점수 || 0,
+      pct: data.수학_백분위 || 0,
+      grade: data.수학_등급 || 0,
+    },
+    english: {
+      grade: data.영어_등급 || 5,
+    },
+    history: {
+      grade: data.한국사_등급 || 4,
+    },
+    inquiry1: {
+      subject: data.탐구1_선택과목 || "",
+      std: data.탐구1_표준점수 || 0,
+      pct: data.탐구1_백분위 || 0,
+      grade: data.탐구1_등급 || 0,
+    },
+    inquiry2: {
+      subject: data.탐구2_선택과목 || "",
+      std: data.탐구2_표준점수 || 0,
+      pct: data.탐구2_백분위 || 0,
+      grade: data.탐구2_등급 || 0,
+    },
+  };
+}
 
 interface SubjectDisplay {
   korean?: string;
@@ -103,14 +140,14 @@ export default function SearchPage() {
       const data = transformApiResponse(rawData);
 
       // 로그인 시에만 DB에서 성적 가져와서 계산 (비로그인은 계산 안 함)
-      let scores = null;
+      let scores: ScoreForm | null = null;
       const token = getToken();
       if (token) {
         try {
           const dbScores = await getScores(token, 2026);
-          // 가장 최근 시험 성적 사용
-          if (dbScores && dbScores.length > 0) {
-            scores = dbScores[0].scores;
+          // 가장 최근 시험 성적 사용 (DB 형식 → API 형식으로 변환)
+          if (dbScores && dbScores.length > 0 && dbScores[0].scores) {
+            scores = convertDbScoresToScoreForm(dbScores[0].scores);
           }
         } catch {
           // DB 실패 시 계산 없이 진행
