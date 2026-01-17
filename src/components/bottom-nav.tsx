@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Calculator, List, Save } from "lucide-react";
+import { Calculator, Search, Heart, Dumbbell, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function BottomNav() {
@@ -10,8 +10,10 @@ export function BottomNav() {
 
   const navItems = [
     { href: "/", label: "성적입력", icon: Calculator },
-    { href: "/result", label: "대학목록", icon: List },
-    { href: "/saved", label: "저장", icon: Save },
+    { href: "/search", label: "대학검색", icon: Search },
+    { href: "/my-universities", label: "저장대학", icon: Heart },
+    { href: "/practical", label: "실기관리", icon: Dumbbell },
+    { href: "/mypage", label: "내정보", icon: User },
   ];
 
   return (
