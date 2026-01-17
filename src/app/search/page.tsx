@@ -1,10 +1,20 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useAuth, getToken } from "@/lib/auth";
 import { getUniversities, calculateAll, toggleSaveUniversity, checkIsSaved, getProfile, getScores } from "@/lib/api";
 import { ScoreForm } from "@/types";
 import { Heart, Filter, MapPin, Users, TrendingUp, ChevronDown, ChevronUp } from "lucide-react";
+
+// 초성 추출 함수
+function getChosung(str: string): string {
+  const cho = ["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+  const code = str.charCodeAt(0) - 44032;
+  if (code < 0 || code > 11171) return "";
+  return cho[Math.floor(code / 588)];
+}
+
+const 초성목록 = ["ㄱ","ㄴ","ㄷ","ㄹ","ㅁ","ㅂ","ㅅ","ㅇ","ㅈ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
 
 // DB 형식(한글)을 API 형식(ScoreForm)으로 변환
 function convertDbScoresToScoreForm(data: any): ScoreForm {
@@ -120,18 +130,47 @@ interface CalculatedUniv extends University {
 }
 
 const 군목록 = ["전체", "가군", "나군", "다군"];
-const 지역목록 = ["전체", "서울", "경기", "인천", "강원", "충북", "충남", "대전", "세종", "전북", "전남", "광주", "경북", "경남", "대구", "울산", "부산", "제주"];
+const 지역목록 = ["서울", "경기", "인천", "강원", "충북", "충남", "대전", "세종", "전북", "전남", "광주", "경북", "경남", "대구", "울산", "부산", "제주"];
 
 export default function SearchPage() {
   const { isLoggedIn } = useAuth();
   const [universities, setUniversities] = useState<CalculatedUniv[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedGun, setSelectedGun] = useState("전체");
-  const [selectedRegion, setSelectedRegion] = useState("전체");
+  const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
   const [showFilter, setShowFilter] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [savingId, setSavingId] = useState<number | null>(null);
   const [userGender, setUserGender] = useState<string | null>(null);
+  const [showChosungBar, setShowChosungBar] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
+  const chosungRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+
+  // 스크롤 감지해서 초성바 표시
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowChosungBar(window.scrollY > 200);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // 지역 토글 함수
+  const toggleRegion = (region: string) => {
+    setSelectedRegions(prev =>
+      prev.includes(region)
+        ? prev.filter(r => r !== region)
+        : [...prev, region]
+    );
+  };
+
+  // 초성으로 스크롤
+  const scrollToChosung = (chosung: string) => {
+    const ref = chosungRefs.current[chosung];
+    if (ref) {
+      ref.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -243,7 +282,7 @@ export default function SearchPage() {
   const filteredUniversities = useMemo(() => {
     return universities.filter((u) => {
       if (selectedGun !== "전체" && u.모집군 !== selectedGun) return false;
-      if (selectedRegion !== "전체" && u.지역 !== selectedRegion) return false;
+      if (selectedRegions.length > 0 && !selectedRegions.includes(u.지역)) return false;
       if (searchText) {
         const search = searchText.toLowerCase();
         if (
@@ -255,7 +294,22 @@ export default function SearchPage() {
       }
       return true;
     });
-  }, [universities, selectedGun, selectedRegion, searchText]);
+  }, [universities, selectedGun, selectedRegions, searchText]);
+
+  // 초성별 그룹핑
+  const groupedByChosung = useMemo(() => {
+    const groups: { [key: string]: CalculatedUniv[] } = {};
+    filteredUniversities.forEach(u => {
+      const cho = getChosung(u.U_NM);
+      // ㄲ→ㄱ, ㄸ→ㄷ 등 쌍자음 병합
+      const normalizedCho = cho === "ㄲ" ? "ㄱ" : cho === "ㄸ" ? "ㄷ" : cho === "ㅃ" ? "ㅂ" : cho === "ㅆ" ? "ㅅ" : cho === "ㅉ" ? "ㅈ" : cho;
+      if (normalizedCho && 초성목록.includes(normalizedCho)) {
+        if (!groups[normalizedCho]) groups[normalizedCho] = [];
+        groups[normalizedCho].push(u);
+      }
+    });
+    return groups;
+  }, [filteredUniversities]);
 
   if (loading) {
     return (
@@ -318,14 +372,16 @@ export default function SearchPage() {
             </div>
           </div>
           <div>
-            <label className="text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-2 block">지역</label>
+            <label className="text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-2 block">
+              지역 {selectedRegions.length > 0 && <span className="text-blue-500">({selectedRegions.length}개 선택)</span>}
+            </label>
             <div className="flex flex-wrap gap-2">
               {지역목록.map((region) => (
                 <button
                   key={region}
-                  onClick={() => setSelectedRegion(region)}
+                  onClick={() => toggleRegion(region)}
                   className={`px-3 py-1.5 rounded-full text-sm transition ${
-                    selectedRegion === region
+                    selectedRegions.includes(region)
                       ? "bg-blue-500 text-white"
                       : "bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400"
                   }`}
@@ -338,7 +394,7 @@ export default function SearchPage() {
           <button
             onClick={() => {
               setSelectedGun("전체");
-              setSelectedRegion("전체");
+              setSelectedRegions([]);
               setSearchText("");
             }}
             className="w-full py-2 text-sm text-zinc-500 hover:text-zinc-700"
@@ -368,20 +424,52 @@ export default function SearchPage() {
       {/* Results Count */}
       <p className="text-sm text-zinc-500 text-center">
         총 {filteredUniversities.length}개 대학
+        {selectedRegions.length > 0 && ` (${selectedRegions.join(", ")})`}
       </p>
 
-      {/* University Cards */}
-      <div className="space-y-3">
-        {filteredUniversities.map((univ) => (
-          <UniversityCard
-            key={univ.U_ID}
-            univ={univ}
-            onToggleSave={() => handleToggleSave(univ.U_ID)}
-            saving={savingId === univ.U_ID}
-            userGender={userGender}
-          />
-        ))}
+      {/* University Cards - 초성별 그룹 */}
+      <div className="space-y-3 relative" ref={listRef}>
+        {초성목록.map((chosung) => {
+          const univs = groupedByChosung[chosung];
+          if (!univs || univs.length === 0) return null;
+          return (
+            <div key={chosung} ref={(el) => { chosungRefs.current[chosung] = el; }}>
+              <div className="sticky top-0 bg-zinc-100 dark:bg-zinc-900 px-3 py-1 text-sm font-bold text-zinc-500 z-10">
+                {chosung}
+              </div>
+              <div className="space-y-3 mt-2">
+                {univs.map((univ) => (
+                  <UniversityCard
+                    key={univ.U_ID}
+                    univ={univ}
+                    onToggleSave={() => handleToggleSave(univ.U_ID)}
+                    saving={savingId === univ.U_ID}
+                    userGender={userGender}
+                  />
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
+
+      {/* 초성 바 - 스크롤 시 표시 */}
+      {showChosungBar && (
+        <div className="fixed right-1 top-1/2 -translate-y-1/2 bg-white/90 dark:bg-zinc-800/90 rounded-full py-2 px-1 shadow-lg z-30 flex flex-col gap-0.5">
+          {초성목록.map((cho) => (
+            <button
+              key={cho}
+              onClick={() => scrollToChosung(cho)}
+              className={`text-xs w-6 h-6 rounded-full flex items-center justify-center transition ${
+                groupedByChosung[cho] ? "text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30" : "text-zinc-300 dark:text-zinc-600"
+              }`}
+              disabled={!groupedByChosung[cho]}
+            >
+              {cho}
+            </button>
+          ))}
+        </div>
+      )}
 
       {filteredUniversities.length === 0 && (
         <div className="text-center py-10 text-zinc-500">
