@@ -217,10 +217,14 @@ export async function getSavedUniversities(token: string) {
   return response.json();
 }
 
-export async function toggleSaveUniversity(token: string, uId: number) {
+export async function toggleSaveUniversity(token: string, uId: number, sunungScore?: number) {
   const response = await fetch(`${API_BASE_URL}/saas/universities/${uId}/toggle`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ sunung_score: sunungScore }),
   });
   if (!response.ok) throw new Error("Failed to toggle save");
   return response.json();

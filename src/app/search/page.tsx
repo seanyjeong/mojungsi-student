@@ -172,9 +172,13 @@ export default function SearchPage() {
     const token = getToken();
     if (!token) return;
 
+    // 저장 시 환산점수도 함께 전달
+    const univ = universities.find((u) => u.U_ID === uId);
+    const score = univ?.calculatedScore;
+
     setSavingId(uId);
     try {
-      const { saved } = await toggleSaveUniversity(token, uId);
+      const { saved } = await toggleSaveUniversity(token, uId, score);
       setUniversities((prev) =>
         prev.map((u) => (u.U_ID === uId ? { ...u, isSaved: saved } : u))
       );

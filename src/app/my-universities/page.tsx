@@ -7,14 +7,13 @@ import {
   getSavedUniversities,
   toggleSaveUniversity,
   updateSavedUniversity,
-  calculateAll,
 } from "@/lib/api";
-import { loadScores } from "@/lib/storage";
 import { Heart, MapPin, X, Save } from "lucide-react";
 
 interface SavedUniversity {
   id: number;
   U_ID: number;
+  sunung_score: number | null;  // 저장 시점의 수능환산점수
   naesin_score: number | null;
   memo: string | null;
   university: {
@@ -37,7 +36,6 @@ export default function MyUniversitiesPage() {
   const [saved, setSaved] = useState<SavedUniversity[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUniv, setSelectedUniv] = useState<SavedUniversity | null>(null);
-  const [calculatedScores, setCalculatedScores] = useState<Record<number, number>>({});
 
   useEffect(() => {
     if (!isLoading && !isLoggedIn) {
@@ -60,24 +58,6 @@ export default function MyUniversitiesPage() {
       // university가 null인 항목 필터링
       const validData = data.filter((s: SavedUniversity) => s.university !== null);
       setSaved(validData);
-
-      // Calculate scores using calculateAll (same as search page)
-      const scores = loadScores();
-      if (scores && Object.keys(scores).length > 0) {
-        try {
-          const response = await calculateAll(scores, 2026);
-          const scoreMap: Record<number, number> = {};
-          // Map by U_ID
-          response.results.forEach((r: any) => {
-            if (r.U_ID && r.finalScore !== undefined) {
-              scoreMap[r.U_ID] = r.finalScore;
-            }
-          });
-          setCalculatedScores(scoreMap);
-        } catch {
-          // ignore calculation errors
-        }
-      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -168,7 +148,7 @@ export default function MyUniversitiesPage() {
                 <div>
                   <p className="text-xs text-zinc-500">수능환산</p>
                   <p className="font-bold text-blue-600">
-                    {calculatedScores[s.U_ID]?.toFixed(1) || "-"}
+                    {s.sunung_score ? Number(s.sunung_score).toFixed(1) : "-"}
                   </p>
                 </div>
                 {s.university.내신반영비율 > 0 && (
@@ -193,7 +173,6 @@ export default function MyUniversitiesPage() {
       {selectedUniv && (
         <UniversityModal
           saved={selectedUniv}
-          calculatedScore={calculatedScores[selectedUniv.U_ID]}
           onClose={() => setSelectedUniv(null)}
           onUpdate={loadSaved}
         />
@@ -204,12 +183,10 @@ export default function MyUniversitiesPage() {
 
 function UniversityModal({
   saved,
-  calculatedScore,
   onClose,
   onUpdate,
 }: {
   saved: SavedUniversity;
-  calculatedScore?: number;
   onClose: () => void;
   onUpdate: () => void;
 }) {
@@ -218,15 +195,16 @@ function UniversityModal({
   const [saving, setSaving] = useState(false);
 
   const univ = saved.university;
+  const sunungScore = saved.sunung_score ? Number(saved.sunung_score) : undefined;
 
   // Calculate total score
   const totalScore = useMemo(() => {
     let total = 0;
-    if (calculatedScore) total += calculatedScore;
+    if (sunungScore) total += sunungScore;
     if (naesinScore) total += parseFloat(naesinScore);
     // TODO: Add practical score
     return total;
-  }, [calculatedScore, naesinScore]);
+  }, [sunungScore, naesinScore]);
 
   const handleSave = async () => {
     const token = getToken();
@@ -275,7 +253,7 @@ function UniversityModal({
             <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 text-center">
               <p className="text-xs text-zinc-500 dark:text-zinc-400">수능환산</p>
               <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                {calculatedScore?.toFixed(1) || "-"}
+                {sunungScore?.toFixed(1) || "-"}
               </p>
             </div>
             {univ.내신반영비율 > 0 && (
