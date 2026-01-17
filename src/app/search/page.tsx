@@ -146,13 +146,30 @@ export default function SearchPage() {
   const listRef = useRef<HTMLDivElement>(null);
   const chosungRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
-  // 스크롤 감지해서 초성바 표시
+  // 스크롤 감지해서 초성바 표시 (2초 후 자동 숨김)
   useEffect(() => {
+    let hideTimer: NodeJS.Timeout;
+
     const handleScroll = () => {
-      setShowChosungBar(window.scrollY > 200);
+      // 스크롤 위치가 200px 이상일 때만 표시
+      if (window.scrollY > 200) {
+        setShowChosungBar(true);
+
+        // 기존 타이머 취소하고 새로 설정
+        clearTimeout(hideTimer);
+        hideTimer = setTimeout(() => {
+          setShowChosungBar(false);
+        }, 2000);
+      } else {
+        setShowChosungBar(false);
+      }
     };
+
     window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      clearTimeout(hideTimer);
+    };
   }, []);
 
   // 지역 토글 함수
