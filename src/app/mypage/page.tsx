@@ -107,7 +107,7 @@ export default function MyPage() {
     const token = getToken();
     if (!token) return;
     try {
-      const data = await getScores(token, 2027);
+      const data = await getScores(token, 2026);
       const map: Record<string, ScoreData> = {};
       data.forEach((s: any) => {
         map[s.exam_type] = s.scores || {};
@@ -181,7 +181,7 @@ export default function MyPage() {
     if (!token) return;
     setScoreSaving(true);
     try {
-      await saveScore(token, selectedExam, currentScore, 2027);
+      await saveScore(token, selectedExam, currentScore, 2026);
       setScores(prev => ({ ...prev, [selectedExam]: currentScore }));
 
       // 수능 성적이면 localStorage에도 저장 (대학검색에서 사용)

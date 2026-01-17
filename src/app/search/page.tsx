@@ -87,7 +87,7 @@ export default function SearchPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const rawData = await getUniversities(2027);
+      const rawData = await getUniversities(2026);
       const data = transformApiResponse(rawData);
       const scores = loadScores();
 
@@ -96,7 +96,7 @@ export default function SearchPage() {
       // Calculate scores if user has entered scores
       if (scores && Object.keys(scores).length > 0) {
         try {
-          const response = await calculateAll(scores, 2027);
+          const response = await calculateAll(scores, 2026);
           // 대학명+학과명으로 매칭 (U_ID가 다른 테이블이라 불일치)
           const scoreMap = new Map(
             response.results.map((r: any) => [
