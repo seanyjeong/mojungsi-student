@@ -32,7 +32,29 @@ export interface ScoreForm {
   };
 }
 
-// API response types
+// API response types - Single calculate endpoint (POST /calculate)
+export interface SingleCalculationResult {
+  success: boolean;
+  universityName: string;
+  departmentName: string;
+  result: {
+    finalScore: number;
+    breakdown?: {
+      korean: number;
+      math: number;
+      english: number;
+      inquiry: number;
+      history: number;
+    };
+    scoreInfo?: {
+      totalScore: number;
+      suneungMaxScore: number;
+      silgiMaxScore: number;
+    };
+  };
+}
+
+// Legacy type alias for backward compatibility
 export interface CalculationResult {
   finalScore: number;
   breakdown: {

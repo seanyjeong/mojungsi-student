@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth, getToken } from "@/lib/auth";
-import { getUniversities, calculateAll, toggleSaveUniversity, checkIsSaved } from "@/lib/api";
+import { getUniversities, calculateAll, toggleSaveUniversity, checkIsSaved, getProfile } from "@/lib/api";
 import { loadScores } from "@/lib/storage";
 import { Heart, Filter, MapPin, Users, TrendingUp, ChevronDown, ChevronUp } from "lucide-react";
 
@@ -27,6 +27,7 @@ interface University {
   내신반영비율: number;
   실기반영비율: number;
   subjectDisplay?: SubjectDisplay;
+  isWomensUniv?: boolean;
 }
 
 // API 응답을 플랫 구조로 변환
@@ -54,6 +55,9 @@ function transformApiResponse(apiData: any[]): University[] {
         ? 100 - suneungRatio
         : 0;
 
+      // 실기종목 가져오기 (practical_events 배열 또는 display_config)
+      const practicalEvents = dept.practical_events?.join(', ') || config.실기종목 || "";
+
       result.push({
         U_ID: dept.dept_id,
         U_NM: univ.univ_name,
@@ -61,11 +65,12 @@ function transformApiResponse(apiData: any[]): University[] {
         지역: univ.region || "미정",
         모집인원: dept.recruit_count || 0,
         모집군: dept.recruit_group ? `${dept.recruit_group}군` : "",
-        실기종목: config.실기종목 || "",
+        실기종목: practicalEvents,
         수능반영비율: suneungRatio || 0,
         내신반영비율: naesinRatio || 0,
         실기반영비율: silgiRatio || 0,
         subjectDisplay: dept.subject_display || undefined,
+        isWomensUniv: univ.isWomensUniv || false,
       });
     }
   }
@@ -90,6 +95,7 @@ export default function SearchPage() {
   const [showFilter, setShowFilter] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [savingId, setSavingId] = useState<number | null>(null);
+  const [userGender, setUserGender] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -120,10 +126,18 @@ export default function SearchPage() {
         }
       }
 
-      // Check saved status for logged-in users
+      // Check saved status and get user profile for logged-in users
       if (isLoggedIn) {
         const token = getToken();
         if (token) {
+          // Get user profile (including gender)
+          try {
+            const profile = await getProfile(token);
+            setUserGender(profile.gender || null);
+          } catch {
+            // ignore profile fetch error
+          }
+
           const withSaved = await Promise.all(
             calculated.map(async (u) => {
               try {
@@ -299,6 +313,7 @@ export default function SearchPage() {
             univ={univ}
             onToggleSave={() => handleToggleSave(univ.U_ID)}
             saving={savingId === univ.U_ID}
+            userGender={userGender}
           />
         ))}
       </div>
@@ -316,24 +331,45 @@ function UniversityCard({
   univ,
   onToggleSave,
   saving,
+  userGender,
 }: {
   univ: CalculatedUniv;
   onToggleSave: () => void;
   saving: boolean;
+  userGender: string | null;
 }) {
   const [expanded, setExpanded] = useState(false);
 
+  // 남자 사용자가 여대를 볼 때 저장 불가
+  const isRestricted = univ.isWomensUniv && userGender === "남";
+
   return (
-    <div className="bg-white dark:bg-zinc-800 rounded-xl p-4 shadow-sm relative">
+    <div className={`rounded-xl p-4 shadow-sm relative ${
+      isRestricted
+        ? "bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800"
+        : "bg-white dark:bg-zinc-800"
+    }`}>
+      {/* Women's University Warning */}
+      {isRestricted && (
+        <div className="mb-3 px-3 py-2 bg-red-100 dark:bg-red-900/30 rounded-lg text-red-600 dark:text-red-400 text-xs font-medium">
+          여자대학교 - 남성은 지원할 수 없습니다
+        </div>
+      )}
+
       {/* Save Button */}
       <button
         onClick={onToggleSave}
-        disabled={saving}
+        disabled={saving || isRestricted}
+        title={isRestricted ? "여대는 저장할 수 없습니다" : undefined}
         className={`absolute top-4 right-4 p-2 rounded-full transition ${
-          univ.isSaved ? "text-red-500" : "text-zinc-400 hover:text-red-400"
+          isRestricted
+            ? "text-zinc-300 dark:text-zinc-600 cursor-not-allowed"
+            : univ.isSaved
+              ? "text-red-500"
+              : "text-zinc-400 hover:text-red-400"
         }`}
       >
-        <Heart className={`w-5 h-5 ${univ.isSaved ? "fill-current" : ""}`} />
+        <Heart className={`w-5 h-5 ${univ.isSaved && !isRestricted ? "fill-current" : ""}`} />
       </button>
 
       {/* Header */}
@@ -438,7 +474,7 @@ function UniversityCard({
       {/* Calculated Score */}
       {univ.calculatedScore !== undefined && (
         <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-700 flex justify-between items-center">
-          <span className="text-sm text-zinc-500">내 환산점수</span>
+          <span className="text-sm text-zinc-500">내 수능환산</span>
           <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
             {univ.calculatedScore.toFixed(2)}점
           </span>

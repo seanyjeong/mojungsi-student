@@ -27,6 +27,7 @@ interface SavedUniversity {
     수능반영비율: number;
     내신반영비율: number;
     실기반영비율: number;
+    isWomensUniv?: boolean;
   };
 }
 
@@ -67,9 +68,9 @@ export default function MyUniversitiesPage() {
         await Promise.all(
           validData.map(async (s: SavedUniversity) => {
             try {
-              const result = await calculateScore(s.U_ID, scores);
-              if (result?.finalScore) {
-                scoreMap[s.U_ID] = result.finalScore;
+              const response = await calculateScore(s.U_ID, scores);
+              if (response?.result?.finalScore) {
+                scoreMap[s.U_ID] = response.result.finalScore;
               }
             } catch {
               // ignore
@@ -154,20 +155,31 @@ export default function MyUniversitiesPage() {
                 </span>
               </div>
 
+              {/* 실기종목 */}
+              {s.university.실기종목 && (
+                <p className="text-xs text-zinc-500 mt-2">
+                  실기: {s.university.실기종목}
+                </p>
+              )}
+
               {/* Score Summary */}
-              <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-700 grid grid-cols-3 gap-2 text-center">
+              <div className={`mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-700 grid gap-2 text-center ${
+                s.university.내신반영비율 > 0 ? 'grid-cols-3' : 'grid-cols-2'
+              }`}>
                 <div>
-                  <p className="text-xs text-zinc-500">환산점수</p>
+                  <p className="text-xs text-zinc-500">수능환산</p>
                   <p className="font-bold text-blue-600">
                     {calculatedScores[s.U_ID]?.toFixed(1) || "-"}
                   </p>
                 </div>
-                <div>
-                  <p className="text-xs text-zinc-500">내신</p>
-                  <p className="font-bold text-green-600">
-                    {s.naesin_score?.toFixed(1) || "-"}
-                  </p>
-                </div>
+                {s.university.내신반영비율 > 0 && (
+                  <div>
+                    <p className="text-xs text-zinc-500">내신</p>
+                    <p className="font-bold text-green-600">
+                      {s.naesin_score?.toFixed(1) || "-"}
+                    </p>
+                  </div>
+                )}
                 <div>
                   <p className="text-xs text-zinc-500">실기</p>
                   <p className="font-bold text-purple-600">-</p>
@@ -260,19 +272,21 @@ function UniversityModal({
           </div>
 
           {/* Score Breakdown */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className={`grid gap-3 ${univ.내신반영비율 > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 text-center">
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">환산점수</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">수능환산</p>
               <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
                 {calculatedScore?.toFixed(1) || "-"}
               </p>
             </div>
-            <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-3 text-center">
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">내신</p>
-              <p className="text-lg font-bold text-green-600 dark:text-green-400">
-                {naesinScore || "-"}
-              </p>
-            </div>
+            {univ.내신반영비율 > 0 && (
+              <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-3 text-center">
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">내신</p>
+                <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                  {naesinScore || "-"}
+                </p>
+              </div>
+            )}
             <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-3 text-center">
               <p className="text-xs text-zinc-500 dark:text-zinc-400">실기</p>
               <p className="text-lg font-bold text-purple-600 dark:text-purple-400">-</p>
@@ -285,7 +299,7 @@ function UniversityModal({
             <div className="flex gap-4 text-sm">
               <span>수능 {univ.수능반영비율}%</span>
               {univ.내신반영비율 > 0 && <span>내신 {univ.내신반영비율}%</span>}
-              <span>실기 {univ.실기반영비율}%</span>
+              {univ.실기반영비율 > 0 && <span>실기 {univ.실기반영비율}%</span>}
             </div>
           </div>
 

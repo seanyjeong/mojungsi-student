@@ -1,18 +1,20 @@
-import { ScoreForm, CalculationResult, BatchCalculationResult } from "@/types";
+import { ScoreForm, SingleCalculationResult, BatchCalculationResult } from "@/types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8900";
 
 export async function calculateScore(
-  deptId: number,
-  scores: ScoreForm
-): Promise<CalculationResult> {
+  U_ID: number,
+  scores: ScoreForm,
+  year: number = 2026
+): Promise<SingleCalculationResult> {
   const response = await fetch(`${API_BASE_URL}/calculate`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      deptId,
+      U_ID,
+      year,
       scores,
     }),
   });
