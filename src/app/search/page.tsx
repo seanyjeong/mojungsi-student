@@ -453,23 +453,25 @@ export default function SearchPage() {
         })}
       </div>
 
-      {/* 초성 바 - 스크롤 시 표시 */}
-      {showChosungBar && (
-        <div className="fixed right-1 top-1/2 -translate-y-1/2 bg-white/90 dark:bg-zinc-800/90 rounded-full py-2 px-1 shadow-lg z-30 flex flex-col gap-0.5">
-          {초성목록.map((cho) => (
-            <button
-              key={cho}
-              onClick={() => scrollToChosung(cho)}
-              className={`text-xs w-6 h-6 rounded-full flex items-center justify-center transition ${
-                groupedByChosung[cho] ? "text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30" : "text-zinc-300 dark:text-zinc-600"
-              }`}
-              disabled={!groupedByChosung[cho]}
-            >
-              {cho}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* 초성 바 - 스크롤 시 표시, 천천히 사라짐 */}
+      <div
+        className={`fixed right-1 top-1/2 -translate-y-1/2 bg-white/90 dark:bg-zinc-800/90 rounded-full py-2 px-1 shadow-lg z-30 flex flex-col gap-0.5 transition-opacity duration-500 ${
+          showChosungBar ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+      >
+        {초성목록.map((cho) => (
+          <button
+            key={cho}
+            onClick={() => scrollToChosung(cho)}
+            className={`text-xs w-6 h-6 rounded-full flex items-center justify-center transition ${
+              groupedByChosung[cho] ? "text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30" : "text-zinc-300 dark:text-zinc-600"
+            }`}
+            disabled={!groupedByChosung[cho]}
+          >
+            {cho}
+          </button>
+        ))}
+      </div>
 
       {filteredUniversities.length === 0 && (
         <div className="text-center py-10 text-zinc-500">
@@ -566,6 +568,18 @@ function UniversityCard({
         </p>
       )}
 
+      {/* Calculated Score - 상세보기 위에 표시 */}
+      {univ.calculatedScore !== undefined && (
+        <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-700 flex justify-between items-center">
+          <span className="text-sm text-zinc-500 flex items-center gap-1">
+            <TrendingUp className="w-4 h-4" /> 내 수능환산
+          </span>
+          <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
+            {univ.calculatedScore.toFixed(2)}점
+          </span>
+        </div>
+      )}
+
       {/* Expand Button */}
       <button
         onClick={() => setExpanded(!expanded)}
@@ -621,16 +635,6 @@ function UniversityCard({
               </p>
             </div>
           )}
-        </div>
-      )}
-
-      {/* Calculated Score */}
-      {univ.calculatedScore !== undefined && (
-        <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-700 flex justify-between items-center">
-          <span className="text-sm text-zinc-500">내 수능환산</span>
-          <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
-            {univ.calculatedScore.toFixed(2)}점
-          </span>
         </div>
       )}
     </div>
