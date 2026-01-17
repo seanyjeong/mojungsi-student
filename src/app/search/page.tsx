@@ -29,8 +29,22 @@ function transformApiResponse(apiData: any[]): University[] {
     if (!univ.departments) continue;
 
     for (const dept of univ.departments) {
-      const config = dept.formula_configs?.display_config || {};
+      const fc = dept.formula_configs;
+      const config = fc?.display_config || {};
       const ratios = config.비율 || {};
+
+      // display_config가 있으면 그걸 사용, 없으면 formula_configs 필드에서 직접 추출
+      const suneungRatio = ratios.수능
+        ? parseInt(ratios.수능)
+        : fc?.suneung_ratio
+        ? parseFloat(fc.suneung_ratio)
+        : 100;
+      const naesinRatio = ratios.내신 ? parseInt(ratios.내신) : 0;
+      const silgiRatio = ratios.실기
+        ? parseInt(ratios.실기)
+        : fc?.practical_total > 0
+        ? 100 - suneungRatio
+        : 0;
 
       result.push({
         U_ID: dept.dept_id,
@@ -40,9 +54,9 @@ function transformApiResponse(apiData: any[]): University[] {
         모집인원: dept.recruit_count || 0,
         모집군: dept.recruit_group ? `${dept.recruit_group}군` : "",
         실기종목: config.실기종목 || "",
-        수능반영비율: parseInt(ratios.수능) || 0,
-        내신반영비율: parseInt(ratios.내신) || 0,
-        실기반영비율: parseInt(ratios.실기) || 0,
+        수능반영비율: suneungRatio || 0,
+        내신반영비율: naesinRatio || 0,
+        실기반영비율: silgiRatio || 0,
         과목반영: config.과목 ? JSON.stringify(config.과목) : undefined,
         선택과목: config.선택?.조건 || undefined,
       });
@@ -83,7 +97,7 @@ export default function SearchPage() {
       if (scores && Object.keys(scores).length > 0) {
         try {
           const response = await calculateAll(scores, 2027);
-          const scoreMap = new Map(response.results.map((r: any) => [r.U_ID, r.환산점수]));
+          const scoreMap = new Map(response.results.map((r: any) => [r.U_ID, r.finalScore]));
           calculated = data.map((u: University) => ({
             ...u,
             calculatedScore: scoreMap.get(u.U_ID),
