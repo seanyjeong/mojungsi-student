@@ -7,7 +7,7 @@ import {
   getSavedUniversities,
   toggleSaveUniversity,
   updateSavedUniversity,
-  calculateScore,
+  calculateAll,
 } from "@/lib/api";
 import { loadScores } from "@/lib/storage";
 import { Heart, MapPin, X, Save } from "lucide-react";
@@ -61,25 +61,22 @@ export default function MyUniversitiesPage() {
       const validData = data.filter((s: SavedUniversity) => s.university !== null);
       setSaved(validData);
 
-      // Calculate scores for each saved university
+      // Calculate scores using calculateAll (same as search page)
       const scores = loadScores();
       if (scores && Object.keys(scores).length > 0) {
-        const scoreMap: Record<number, number> = {};
-        await Promise.all(
-          validData.map(async (s: SavedUniversity) => {
-            try {
-              const response = await calculateScore(s.U_ID, scores);
-              // API returns totalScore as string
-              const totalScore = response?.result?.totalScore;
-              if (totalScore) {
-                scoreMap[s.U_ID] = parseFloat(totalScore);
-              }
-            } catch {
-              // ignore
+        try {
+          const response = await calculateAll(scores, 2026);
+          const scoreMap: Record<number, number> = {};
+          // Map by U_ID
+          response.results.forEach((r: any) => {
+            if (r.U_ID && r.finalScore !== undefined) {
+              scoreMap[r.U_ID] = r.finalScore;
             }
-          })
-        );
-        setCalculatedScores(scoreMap);
+          });
+          setCalculatedScores(scoreMap);
+        } catch {
+          // ignore calculation errors
+        }
       }
     } catch (err) {
       console.error(err);

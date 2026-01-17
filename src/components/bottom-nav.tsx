@@ -5,13 +5,13 @@ import { usePathname } from "next/navigation";
 import { Calculator, Search, Heart, Dumbbell, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const APP_VERSION = "0.2.4";
+const APP_VERSION = "0.2.6";
 
 export function BottomNav() {
   const pathname = usePathname();
 
   const navItems = [
-    { href: "/", label: "성적입력", icon: Calculator },
+    { href: "/", label: "홈", icon: Calculator },
     { href: "/search", label: "대학검색", icon: Search },
     { href: "/my-universities", label: "저장대학", icon: Heart },
     { href: "/practical", label: "실기관리", icon: Dumbbell },
