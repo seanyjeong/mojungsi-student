@@ -38,19 +38,14 @@ export interface SingleCalculationResult {
   universityName: string;
   departmentName: string;
   result: {
-    finalScore: number;
+    totalScore: string; // API returns as string
     breakdown?: {
-      korean: number;
-      math: number;
-      english: number;
-      inquiry: number;
-      history: number;
+      base?: number;
+      select?: number;
+      history?: number;
+      english_bonus?: number;
     };
-    scoreInfo?: {
-      totalScore: number;
-      suneungMaxScore: number;
-      silgiMaxScore: number;
-    };
+    calculationLog?: string[];
   };
 }
 

@@ -62,7 +62,7 @@ function transformApiResponse(apiData: any[]): University[] {
         U_ID: dept.dept_id,
         U_NM: univ.univ_name,
         D_NM: dept.dept_name,
-        지역: univ.region || "미정",
+        지역: dept.region || univ.region || "미정",
         모집인원: dept.recruit_count || 0,
         모집군: dept.recruit_group ? `${dept.recruit_group}군` : "",
         실기종목: practicalEvents,

@@ -69,8 +69,10 @@ export default function MyUniversitiesPage() {
           validData.map(async (s: SavedUniversity) => {
             try {
               const response = await calculateScore(s.U_ID, scores);
-              if (response?.result?.finalScore) {
-                scoreMap[s.U_ID] = response.result.finalScore;
+              // API returns totalScore as string
+              const totalScore = response?.result?.totalScore;
+              if (totalScore) {
+                scoreMap[s.U_ID] = parseFloat(totalScore);
               }
             } catch {
               // ignore
