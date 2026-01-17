@@ -6,6 +6,15 @@ import { getUniversities, calculateAll, toggleSaveUniversity, checkIsSaved } fro
 import { loadScores } from "@/lib/storage";
 import { Heart, Filter, MapPin, Users, TrendingUp, ChevronDown, ChevronUp } from "lucide-react";
 
+interface SubjectDisplay {
+  korean?: string;
+  math?: string;
+  english?: string;
+  inquiry?: string;
+  history?: string;
+  inquiry_count?: string;
+}
+
 interface University {
   U_ID: number;
   U_NM: string;
@@ -17,8 +26,7 @@ interface University {
   수능반영비율: number;
   내신반영비율: number;
   실기반영비율: number;
-  과목반영?: string;
-  선택과목?: string;
+  subjectDisplay?: SubjectDisplay;
 }
 
 // API 응답을 플랫 구조로 변환
@@ -57,8 +65,7 @@ function transformApiResponse(apiData: any[]): University[] {
         수능반영비율: suneungRatio || 0,
         내신반영비율: naesinRatio || 0,
         실기반영비율: silgiRatio || 0,
-        과목반영: config.과목 ? JSON.stringify(config.과목) : undefined,
-        선택과목: config.선택?.조건 || undefined,
+        subjectDisplay: dept.subject_display || undefined,
       });
     }
   }
@@ -389,15 +396,41 @@ function UniversityCard({
       {/* Expanded Content */}
       {expanded && (
         <div className="mt-3 pt-3 border-t border-dashed border-zinc-200 dark:border-zinc-700">
-          {univ.과목반영 && (
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              <strong>과목반영:</strong> {univ.과목반영}
-            </p>
-          )}
-          {univ.선택과목 && (
-            <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-              <strong>선택과목:</strong> {univ.선택과목}
-            </p>
+          {/* 과목별 반영비율 (CSV 데이터) */}
+          {univ.subjectDisplay && (
+            <div>
+              <p className="text-xs font-medium text-zinc-500 mb-2">과목별 반영비율</p>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div className="bg-zinc-50 dark:bg-zinc-700/50 rounded px-2 py-1.5">
+                  <span className="text-zinc-500">국어</span>
+                  <p className="font-medium">{univ.subjectDisplay.korean || "-"}</p>
+                </div>
+                <div className="bg-zinc-50 dark:bg-zinc-700/50 rounded px-2 py-1.5">
+                  <span className="text-zinc-500">수학</span>
+                  <p className="font-medium">{univ.subjectDisplay.math || "-"}</p>
+                </div>
+                <div className="bg-zinc-50 dark:bg-zinc-700/50 rounded px-2 py-1.5">
+                  <span className="text-zinc-500">영어</span>
+                  <p className="font-medium">{univ.subjectDisplay.english || "-"}</p>
+                </div>
+                <div className="bg-zinc-50 dark:bg-zinc-700/50 rounded px-2 py-1.5">
+                  <span className="text-zinc-500">탐구</span>
+                  <p className="font-medium">
+                    {univ.subjectDisplay.inquiry || "-"}
+                    {univ.subjectDisplay.inquiry_count && (
+                      <span className="text-zinc-400 ml-1">({univ.subjectDisplay.inquiry_count}과목)</span>
+                    )}
+                  </p>
+                </div>
+                <div className="bg-zinc-50 dark:bg-zinc-700/50 rounded px-2 py-1.5">
+                  <span className="text-zinc-500">한국사</span>
+                  <p className="font-medium">{univ.subjectDisplay.history || "-"}</p>
+                </div>
+              </div>
+              <p className="text-[10px] text-zinc-400 mt-2">
+                * 괄호 안 숫자 = 택1 비율 (예: 국/수/영 중 1과목 선택)
+              </p>
+            </div>
           )}
         </div>
       )}

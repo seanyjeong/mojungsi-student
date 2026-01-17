@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, getToken } from "@/lib/auth";
 import { getProfile, updateProfile, getScores, saveScore } from "@/lib/api";
-import { saveScores as saveToStorage } from "@/lib/storage";
+import { saveScores as saveToStorage, saveCalcExamType, loadCalcExamType } from "@/lib/storage";
 import { ScoreForm } from "@/types";
 import { User, Pencil, Save, Book, Calculator, Globe, Landmark, Search } from "lucide-react";
 
@@ -59,6 +59,7 @@ export default function MyPage() {
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedExam, setSelectedExam] = useState("수능");
+  const [calcExam, setCalcExam] = useState("수능"); // 계산에 사용할 시험
   const [scores, setScores] = useState<Record<string, ScoreData>>({});
   const [currentScore, setCurrentScore] = useState<ScoreData>({});
   const [scoreSaving, setScoreSaving] = useState(false);
@@ -75,6 +76,8 @@ export default function MyPage() {
       loadProfile();
       loadScores();
     }
+    // 계산에 사용할 시험 타입 로드
+    setCalcExam(loadCalcExamType());
   }, [isLoggedIn]);
 
   useEffect(() => {
@@ -184,8 +187,8 @@ export default function MyPage() {
       await saveScore(token, selectedExam, currentScore, 2026);
       setScores(prev => ({ ...prev, [selectedExam]: currentScore }));
 
-      // 수능 성적이면 localStorage에도 저장 (대학검색에서 사용)
-      if (selectedExam === "수능") {
+      // 현재 선택된 계산 시험이면 localStorage에도 저장 (대학검색에서 사용)
+      if (selectedExam === calcExam) {
         const scoreForm = convertToScoreForm(currentScore);
         saveToStorage(scoreForm);
       }
@@ -197,6 +200,19 @@ export default function MyPage() {
       setTimeout(() => setMessage(""), 3000);
     } finally {
       setScoreSaving(false);
+    }
+  };
+
+  // 계산에 사용할 시험 변경
+  const handleSetCalcExam = (exam: string) => {
+    setCalcExam(exam);
+    saveCalcExamType(exam);
+    // 해당 시험의 성적이 있으면 localStorage에 저장
+    if (scores[exam]) {
+      const scoreForm = convertToScoreForm(scores[exam]);
+      saveToStorage(scoreForm);
+      setMessage(`✅ "${exam}" 성적으로 계산합니다!`);
+      setTimeout(() => setMessage(""), 3000);
     }
   };
 
@@ -325,20 +341,46 @@ export default function MyPage() {
       {activeTab === "scores" && (
         <div className="space-y-4">
           {/* Exam Type Selector */}
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            {EXAM_TYPES.map((exam) => (
-              <button
-                key={exam}
-                onClick={() => setSelectedExam(exam)}
-                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition ${
-                  selectedExam === exam
-                    ? "bg-blue-500 text-white"
-                    : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
-                }`}
-              >
-                {exam}
-              </button>
-            ))}
+          <div className="bg-white dark:bg-zinc-800 rounded-xl p-4 shadow-sm">
+            <p className="text-sm text-zinc-500 mb-3">성적 입력할 시험 선택</p>
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {EXAM_TYPES.map((exam) => (
+                <button
+                  key={exam}
+                  onClick={() => setSelectedExam(exam)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition ${
+                    selectedExam === exam
+                      ? "bg-blue-500 text-white"
+                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border dark:border-zinc-700"
+                  }`}
+                >
+                  {exam}
+                </button>
+              ))}
+            </div>
+
+            {/* 계산에 사용할 시험 선택 */}
+            <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-700">
+              <p className="text-sm text-zinc-500 mb-3">🧮 계산에 사용할 시험</p>
+              <div className="flex gap-2 overflow-x-auto">
+                {EXAM_TYPES.map((exam) => (
+                  <button
+                    key={exam}
+                    onClick={() => handleSetCalcExam(exam)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition ${
+                      calcExam === exam
+                        ? "bg-green-500 text-white"
+                        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border dark:border-zinc-700"
+                    }`}
+                  >
+                    {exam} {calcExam === exam && "✓"}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-zinc-400 mt-2">
+                대학검색에서 {calcExam} 성적으로 환산점수를 계산합니다
+              </p>
+            </div>
           </div>
 
           {/* Score Input Cards */}
