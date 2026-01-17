@@ -1,4 +1,4 @@
-# 학생용 Web (v0.2.9)
+# 학생용 Web (v0.3.1)
 
 **배포**: `git push` → Vercel 자동
 **API**: `jungsi.sean8320.dedyn.io`
@@ -39,15 +39,24 @@
 
 ---
 
+## 검색 페이지 기능 (v0.3.0+)
+
+- **초성 바**: 스크롤 시 오른쪽에 ㄱㄴㄷ 표시, 클릭하면 해당 초성으로 이동
+- **지역 다중선택**: 여러 지역 동시 필터 가능
+- **초성별 그룹핑**: 대학 목록이 초성별로 구분됨
+
+---
+
 ## 주요 파일
 
 | 파일 | 설명 |
 |------|------|
-| `lib/auth.ts` | 인증 훅 (useAuth, getToken, logout) |
+| `lib/auth.ts` | 인증 훅 (useAuth, getToken, logout→홈이동) |
 | `lib/api.ts` | API 호출 함수들 |
-| `search/page.tsx` | 대학 검색 + DB 성적 → 환산점수 |
+| `search/page.tsx` | 대학 검색 + 초성바 + 다중지역필터 |
 | `my-universities/page.tsx` | 저장 대학 + DB 환산점수 |
 | `mypage/page.tsx` | 성적 입력/저장 (DB) |
+| `components/bottom-nav.tsx` | 하단 네비게이션 (버전 표시) |
 
 ---
 
