@@ -56,14 +56,16 @@ export default function MyUniversitiesPage() {
     setLoading(true);
     try {
       const data = await getSavedUniversities(token);
-      setSaved(data);
+      // university가 null인 항목 필터링
+      const validData = data.filter((s: SavedUniversity) => s.university !== null);
+      setSaved(validData);
 
       // Calculate scores for each saved university
       const scores = loadScores();
       if (scores && Object.keys(scores).length > 0) {
         const scoreMap: Record<number, number> = {};
         await Promise.all(
-          data.map(async (s: SavedUniversity) => {
+          validData.map(async (s: SavedUniversity) => {
             try {
               const result = await calculateScore(s.U_ID, scores);
               if (result?.finalScore) {

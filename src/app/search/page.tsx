@@ -97,10 +97,16 @@ export default function SearchPage() {
       if (scores && Object.keys(scores).length > 0) {
         try {
           const response = await calculateAll(scores, 2027);
-          const scoreMap = new Map(response.results.map((r: any) => [r.U_ID, r.finalScore]));
+          // 대학명+학과명으로 매칭 (U_ID가 다른 테이블이라 불일치)
+          const scoreMap = new Map(
+            response.results.map((r: any) => [
+              `${r.university?.univName}_${r.university?.deptName}`,
+              r.finalScore,
+            ])
+          );
           calculated = data.map((u: University) => ({
             ...u,
-            calculatedScore: scoreMap.get(u.U_ID),
+            calculatedScore: scoreMap.get(`${u.U_NM}_${u.D_NM}`),
           }));
         } catch (err) {
           console.error("Calculation error:", err);
