@@ -517,14 +517,26 @@ function UniversityModal({
             </div>
           </div>
 
-          {/* Ratio Info */}
-          <div className="bg-zinc-50 dark:bg-zinc-700/50 rounded-xl p-4">
-            <h4 className="font-medium mb-2">반영 비율</h4>
-            <div className="flex gap-4 text-sm">
-              <span>수능 {univ.수능반영비율}%</span>
-              {univ.내신반영비율 > 0 && <span>내신 {univ.내신반영비율}%</span>}
-              {univ.실기반영비율 > 0 && <span>실기 {univ.실기반영비율}%</span>}
-            </div>
+          {/* Ratio Info Cards */}
+          <div className="grid grid-cols-3 gap-2">
+            {univ.수능반영비율 > 0 && (
+              <div className="bg-blue-50 dark:bg-blue-900/30 rounded-xl p-3 text-center">
+                <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">수능</p>
+                <p className="text-lg font-bold text-blue-700 dark:text-blue-300">{univ.수능반영비율}%</p>
+              </div>
+            )}
+            {univ.내신반영비율 > 0 && (
+              <div className="bg-green-50 dark:bg-green-900/30 rounded-xl p-3 text-center">
+                <p className="text-xs text-green-600 dark:text-green-400 mb-1">내신</p>
+                <p className="text-lg font-bold text-green-700 dark:text-green-300">{univ.내신반영비율}%</p>
+              </div>
+            )}
+            {univ.실기반영비율 > 0 && (
+              <div className="bg-purple-50 dark:bg-purple-900/30 rounded-xl p-3 text-center">
+                <p className="text-xs text-purple-600 dark:text-purple-400 mb-1">실기</p>
+                <p className="text-lg font-bold text-purple-700 dark:text-purple-300">{univ.실기반영비율}%</p>
+              </div>
+            )}
           </div>
 
           {/* Practical Events Input */}
