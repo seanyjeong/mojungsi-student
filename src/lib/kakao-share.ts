@@ -56,40 +56,41 @@ export function shareScore(data: ShareScoreData): boolean {
     initKakao();
   }
 
-  // 점수 요약
-  const scores = [];
-  scores.push(`수능 ${data.sunungScore.toFixed(0)}`);
+  // 소숫점 포맷 (.0이면 정수로)
+  const formatScore = (n: number) => n % 1 === 0 ? n.toFixed(0) : n.toFixed(1);
+
+  // 점수 한 줄 요약
+  const scoreParts = [];
+  scoreParts.push(`수능 ${formatScore(data.sunungScore)}`);
   if (data.naesinScore && data.naesinScore > 0) {
-    scores.push(`내신 ${data.naesinScore.toFixed(0)}`);
+    scoreParts.push(`내신 ${formatScore(data.naesinScore)}`);
   }
   if (data.practicalScore && data.practicalScore > 0) {
-    const deduction = data.totalDeduction && data.totalDeduction > 0
-      ? `(${data.totalDeduction}감)`
-      : "";
-    scores.push(`실기 ${data.practicalScore.toFixed(0)}${deduction}`);
+    scoreParts.push(`실기 ${formatScore(data.practicalScore)}`);
   }
+  scoreParts.push(`총점 ${formatScore(data.totalScore)}`);
 
-  // 실기 종목별 기록
-  let practicalSummary = "";
+  // 실기 종목별 기록 (각 종목 한 줄씩)
+  let practicalLines = "";
   if (data.practicalRecords && data.practicalRecords.length > 0) {
-    const items = data.practicalRecords.map((r) => {
-      if (r.deduction && r.deduction > 0) return `${r.event} ${r.deduction}감`;
-      if (r.score !== undefined) return `${r.event} 만점`;
-      return null;
+    const lines = data.practicalRecords.map((r) => {
+      const deductionText = r.deduction && r.deduction > 0
+        ? `${r.deduction}감`
+        : (r.score !== undefined ? "만점" : "");
+      return `${r.event} ${r.record} ${deductionText}`.trim();
     }).filter(Boolean);
-    if (items.length > 0) {
-      practicalSummary = `\n${items.join(", ")}`;
+    if (lines.length > 0) {
+      practicalLines = `\n${lines.join("\n")}`;
     }
   }
 
-  // 텍스트 메시지 구성 (심플한 이모지)
+  // 텍스트 메시지 구성
   const text = `📊 정시계산기
 
 ${data.universityName}
 ${data.departmentName}
 
-✓ 총점 ${data.totalScore.toFixed(1)}점
-${scores.join(" · ")}${practicalSummary}`;
+${scoreParts.join(" · ")}${practicalLines}`;
 
   try {
     window.Kakao.Share.sendDefault({
