@@ -205,15 +205,24 @@ export default function SearchPage() {
 
       // 로그인 시에만 DB에서 성적 가져와서 계산 (비로그인은 계산 안 함)
       let scores: ScoreForm | null = null;
+      let userYear = activeYear; // 기본값은 서버 설정 연도
       const token = getToken();
       if (token) {
         try {
-          // 프로필에서 계산용 시험 타입 조회
+          // 프로필에서 계산용 시험 타입 및 학년 조회
           const profile = await getProfile(token);
           const selectedExamType = profile.calc_exam_type || "수능";
 
-          // 수능 점수는 시험 연도(2026) 기준으로 조회 (입시 연도와 무관)
-          const dbScores = await getScores(token, 2026);
+          // 학년에 따라 입시연도 결정: 2학년→2028, 3학년/N수→2027
+          const targetYear = profile.grade === "2학년" ? 2028 : 2027;
+          userYear = targetYear;
+
+          // 해당 연도 성적 조회, 없으면 2027로 fallback
+          let dbScores = await getScores(token, targetYear);
+          if ((!dbScores || dbScores.length === 0) && targetYear !== 2027) {
+            dbScores = await getScores(token, 2027);
+            userYear = 2027; // fallback 시 연도도 변경
+          }
 
           if (dbScores && dbScores.length > 0) {
             // 선택된 시험 타입의 성적 찾기
@@ -246,7 +255,7 @@ export default function SearchPage() {
       // Calculate scores if user has entered scores
       if (scores && Object.keys(scores).length > 0) {
         try {
-          const response = await calculateAll(scores, activeYear);
+          const response = await calculateAll(scores, userYear);
           // 대학명+학과명으로 매칭 (U_ID가 다른 테이블이라 불일치)
           const scoreMap = new Map(
             response.results.map((r: any) => [
