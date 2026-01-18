@@ -104,8 +104,11 @@ function transformApiResponse(apiData: any[]): University[] {
       // 실기종목 가져오기 (practical_events 배열 또는 display_config)
       const practicalEvents = dept.practical_events?.join(', ') || config.실기종목 || "";
 
+      // legacy_uid가 jungsi_basic의 U_ID와 매칭됨
+      const legacyUid = fc?.legacy_uid || dept.dept_id;
+
       result.push({
-        U_ID: dept.dept_id,
+        U_ID: legacyUid,
         U_NM: univ.univ_name,
         D_NM: dept.dept_name,
         지역: dept.region || univ.region || "미정",
