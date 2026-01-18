@@ -66,7 +66,7 @@ interface University {
   U_NM: string;
   D_NM: string;
   지역: string;
-  모집인원: number;
+  모집인원: string;
   모집군: string;
   실기종목: string;
   수능반영비율: number;
@@ -112,7 +112,7 @@ function transformApiResponse(apiData: any[]): University[] {
         U_NM: univ.univ_name,
         D_NM: dept.dept_name,
         지역: dept.region || univ.region || "미정",
-        모집인원: dept.recruit_count || 0,
+        모집인원: dept.quota || (dept.recruit_count ? String(dept.recruit_count) : "0"),
         모집군: dept.recruit_group ? `${dept.recruit_group}군` : "",
         실기종목: practicalEvents,
         수능반영비율: suneungRatio || 0,
@@ -620,7 +620,7 @@ function UniversityCard({
           <MapPin className="w-3 h-3" /> {univ.지역}
         </span>
         <span className="inline-flex items-center gap-1 px-2 py-1 bg-zinc-100 dark:bg-zinc-700 rounded-lg text-xs">
-          <Users className="w-3 h-3" /> {univ.모집인원}명
+          <Users className="w-3 h-3" /> {/^\d+$/.test(univ.모집인원) ? `${univ.모집인원}명` : univ.모집인원}
         </span>
         <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-medium">
           {univ.모집군}
