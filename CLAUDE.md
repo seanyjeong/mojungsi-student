@@ -1,4 +1,4 @@
-# 학생용 Web (v0.3.7)
+# 학생용 Web (v0.4.0)
 
 **배포**: `git push` → Vercel 자동
 **API**: `jungsi.sean8320.dedyn.io`
@@ -30,7 +30,7 @@ git add -A && git commit -m "vX.X.X: 변경내용" && git push
 | `/` | 홈 (로그인/대시보드) | X |
 | `/search` | 대학 검색 + 환산점수 | O |
 | `/my-universities` | 저장 대학 + 실기점수 계산 | O |
-| `/practical` | 실기 기록 관리 (작업 예정) | O |
+| `/practical` | 실기 기록 관리 + 성장 그래프 | O |
 | `/mypage` | 내 정보 + 성적 입력 | O |
 
 ---
@@ -95,6 +95,39 @@ git add -A && git commit -m "vX.X.X: 변경내용" && git push
 
 ---
 
+## 실기 기록 관리 (v0.4.0)
+
+### 탭 구조
+- **기록 관리**: 종목별 기록 추가/수정/삭제
+- **성장 그래프**: 종목 선택 → 시간에 따른 성장 추적 (Nivo Line)
+- **종목 설정**: 커스텀 종목 추가/삭제, 방향(낮을수록/높을수록 좋음) 설정
+
+### 기본 종목
+| 종목명 | 방향 | 단위 |
+|--------|------|------|
+| 10m버튼, 10m콘, 20m버튼, 20m콘 | lower | 초 |
+| 제멀 | higher | cm |
+| 메던 | higher | m |
+| 좌전굴 | higher | cm |
+| 윗몸 | higher | 회 |
+
+### 주요 파일
+| 파일 | 설명 |
+|------|------|
+| `practical/page.tsx` | 메인 페이지 (탭 구조) |
+| `practical/components/RecordTab.tsx` | 기록 관리 탭 |
+| `practical/components/GrowthChart.tsx` | 성장 그래프 (Nivo) |
+| `practical/components/EventSettings.tsx` | 종목 설정 |
+
+### API 엔드포인트
+| 엔드포인트 | 설명 |
+|-----------|------|
+| `GET /saas/practical/event-types` | 종목 목록 (없으면 기본 종목 자동 생성) |
+| `POST /saas/practical/event-types` | 종목 추가 |
+| `GET /saas/practical/history/:eventName` | 그래프용 히스토리 + 통계 |
+
+---
+
 ## 주요 파일
 
 | 파일 | 설명 |
@@ -104,6 +137,7 @@ git add -A && git commit -m "vX.X.X: 변경내용" && git push
 | `lib/practical-calc.ts` | 실기 점수 계산 + 특수 대학 공식 |
 | `search/page.tsx` | 대학 검색 + 초성바 + 다중지역필터 |
 | `my-universities/page.tsx` | 저장 대학 + 탭 + 실기계산 모달 |
+| `practical/page.tsx` | 실기 기록 관리 + 그래프 |
 | `mypage/page.tsx` | 성적 입력/저장 (DB) |
 | `components/bottom-nav.tsx` | 하단 네비게이션 (버전 표시) |
 
@@ -111,10 +145,10 @@ git add -A && git commit -m "vX.X.X: 변경내용" && git push
 
 ## 기술 스택
 
-Next.js 15 / TypeScript / Tailwind / Radix UI / lucide-react
+Next.js 15 / TypeScript / Tailwind / Radix UI / lucide-react / **@nivo/line**
 
 ---
 
 ## 다음 작업
 
-- [ ] `/practical` 페이지 - 실기 기록 관리 (저장대학 외 독립 관리)
+- [x] `/practical` 페이지 - 실기 기록 관리 완료 (v0.4.0)

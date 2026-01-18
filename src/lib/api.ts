@@ -338,6 +338,97 @@ export async function deletePracticalRecord(token: string, id: number) {
   return response.json();
 }
 
+// ========== Practical Event Types API ==========
+
+export interface EventType {
+  id: number;
+  name: string;
+  direction: "lower" | "higher";
+  unit: string | null;
+  display_order: number;
+  is_default: boolean;
+}
+
+export async function getEventTypes(token: string): Promise<EventType[]> {
+  const response = await fetch(`${API_BASE_URL}/saas/practical/event-types`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) throw new Error("Failed to get event types");
+  return response.json();
+}
+
+export async function createEventType(
+  token: string,
+  data: { name: string; direction: "lower" | "higher"; unit?: string }
+) {
+  const response = await fetch(`${API_BASE_URL}/saas/practical/event-types`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to create event type");
+  return response.json();
+}
+
+export async function updateEventType(
+  token: string,
+  id: number,
+  data: { name?: string; direction?: "lower" | "higher"; unit?: string }
+) {
+  const response = await fetch(`${API_BASE_URL}/saas/practical/event-types/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to update event type");
+  return response.json();
+}
+
+export async function deleteEventType(token: string, id: number) {
+  const response = await fetch(`${API_BASE_URL}/saas/practical/event-types/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) throw new Error("Failed to delete event type");
+  return response.json();
+}
+
+// 그래프용 히스토리 조회
+export interface HistoryData {
+  records: Array<{
+    id: number;
+    record: string | null;
+    numeric_record: string | null;
+    record_date: string | null;
+    memo: string | null;
+  }>;
+  eventType: EventType | null;
+  stats: {
+    average: number;
+    pb: number;
+    current: number;
+    count: number;
+  } | null;
+}
+
+export async function getPracticalHistory(
+  token: string,
+  eventName: string
+): Promise<HistoryData> {
+  const response = await fetch(
+    `${API_BASE_URL}/saas/practical/history/${encodeURIComponent(eventName)}`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (!response.ok) throw new Error("Failed to get history");
+  return response.json();
+}
+
 // ========== 회원탈퇴 API ==========
 
 export async function withdrawUser(token: string) {
