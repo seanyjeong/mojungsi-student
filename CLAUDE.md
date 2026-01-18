@@ -5,6 +5,24 @@
 
 ---
 
+## 배포 시 필수 체크
+
+### 버전업 필요한 파일 (3곳)
+1. `package.json` - `"version": "x.x.x"`
+2. `CLAUDE.md` - 맨 위 제목의 버전
+3. `src/components/bottom-nav.tsx` - `APP_VERSION = "x.x.x"`
+
+### 배포 명령어
+```bash
+git add -A && git commit -m "vX.X.X: 변경내용" && git push
+```
+
+### 버전 규칙
+- `0.X.0` - 큰 기능 추가
+- `0.x.X` - 버그 수정, 작은 개선
+
+---
+
 ## 페이지
 
 | 경로 | 설명 | 로그인 |
