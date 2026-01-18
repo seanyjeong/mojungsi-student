@@ -9,6 +9,7 @@ import {
   updateSavedUniversity,
   getPracticalScoreTable,
   getProfile,
+  getActiveYear,
 } from "@/lib/api";
 import {
   calculatePracticalScore,
@@ -347,10 +348,11 @@ function UniversityModal({
 
       setPracticalLoading(true);
       try {
+        const activeYear = await getActiveYear();
         const data = await getPracticalScoreTable(
           token,
           saved.U_ID,
-          2026,
+          activeYear,
           userGender
         );
         setPracticalData(data);

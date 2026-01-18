@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, getToken } from "@/lib/auth";
-import { getProfile, updateProfile, getScores, saveScore, withdrawUser } from "@/lib/api";
-import { saveScores as saveToStorage, saveCalcExamType, loadCalcExamType } from "@/lib/storage";
+import { getProfile, updateProfile, getScores, saveScore, withdrawUser, getActiveYear } from "@/lib/api";
 import { ScoreForm } from "@/types";
 import { User, Pencil, Save, Book, Calculator, Globe, Landmark, Search, AlertTriangle, X } from "lucide-react";
 
@@ -80,8 +79,6 @@ export default function MyPage() {
       loadProfile();
       loadScores();
     }
-    // 계산에 사용할 시험 타입 로드
-    setCalcExam(loadCalcExamType());
   }, [isLoggedIn]);
 
   useEffect(() => {
@@ -106,6 +103,8 @@ export default function MyPage() {
         profileImage: data.profile_image || "",
       };
       setProfile(loadedProfile);
+      // 계산용 시험 타입 로드 (DB에서)
+      setCalcExam(data.calc_exam_type || "수능");
 
       // 성별 또는 학년이 없으면 모달 표시
       if (!loadedProfile.gender || !loadedProfile.grade) {
@@ -127,7 +126,8 @@ export default function MyPage() {
     const token = getToken();
     if (!token) return;
     try {
-      const data = await getScores(token, 2026);
+      const activeYear = await getActiveYear();
+      const data = await getScores(token, activeYear);
       const map: Record<string, ScoreData> = {};
       data.forEach((s: any) => {
         map[s.exam_type] = s.scores || {};
@@ -255,15 +255,9 @@ export default function MyPage() {
     if (!token) return;
     setScoreSaving(true);
     try {
-      await saveScore(token, selectedExam, currentScore, 2026);
+      const activeYear = await getActiveYear();
+      await saveScore(token, selectedExam, currentScore, activeYear);
       setScores(prev => ({ ...prev, [selectedExam]: currentScore }));
-
-      // 현재 선택된 계산 시험이면 localStorage에도 저장 (대학검색에서 사용)
-      if (selectedExam === calcExam) {
-        const scoreForm = convertToScoreForm(currentScore);
-        saveToStorage(scoreForm);
-      }
-
       setMessage("✅ 성적이 저장되었습니다!");
       setTimeout(() => setMessage(""), 3000);
     } catch (err) {
@@ -275,15 +269,17 @@ export default function MyPage() {
   };
 
   // 계산에 사용할 시험 변경
-  const handleSetCalcExam = (exam: string) => {
+  const handleSetCalcExam = async (exam: string) => {
+    const token = getToken();
+    if (!token) return;
+
     setCalcExam(exam);
-    saveCalcExamType(exam);
-    // 해당 시험의 성적이 있으면 localStorage에 저장
-    if (scores[exam]) {
-      const scoreForm = convertToScoreForm(scores[exam]);
-      saveToStorage(scoreForm);
+    try {
+      await updateProfile(token, { calc_exam_type: exam });
       setMessage(`✅ "${exam}" 성적으로 계산합니다!`);
       setTimeout(() => setMessage(""), 3000);
+    } catch (err) {
+      console.error("Failed to save calc exam type:", err);
     }
   };
 

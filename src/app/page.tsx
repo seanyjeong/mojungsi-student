@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth";
-import { loadScores } from "@/lib/storage";
+import { useAuth, getToken } from "@/lib/auth";
+import { getScores, getActiveYear } from "@/lib/api";
 import { Search, Heart, Dumbbell, User } from "lucide-react";
 import Link from "next/link";
 
@@ -13,9 +13,22 @@ export default function HomePage() {
   const [hasScores, setHasScores] = useState(false);
 
   useEffect(() => {
-    const scores = loadScores();
-    setHasScores(!!(scores && Object.keys(scores).length > 0));
-  }, []);
+    const checkScores = async () => {
+      const token = getToken();
+      if (!token) {
+        setHasScores(false);
+        return;
+      }
+      try {
+        const activeYear = await getActiveYear();
+        const scores = await getScores(token, activeYear);
+        setHasScores(!!(scores && scores.length > 0 && scores.some((s: any) => s.scores)));
+      } catch {
+        setHasScores(false);
+      }
+    };
+    checkScores();
+  }, [isLoggedIn]);
 
   const menuItems = [
     {

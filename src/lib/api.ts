@@ -2,6 +2,33 @@ import { ScoreForm, SingleCalculationResult, BatchCalculationResult } from "@/ty
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8900";
 
+// ========== 활성 연도 API ==========
+
+let cachedActiveYear: number | null = null;
+
+export async function getActiveYear(): Promise<number> {
+  // 캐시된 값이 있으면 반환
+  if (cachedActiveYear !== null) {
+    return cachedActiveYear;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/admin/jungsi/active-year`);
+    if (response.ok) {
+      const data = await response.json();
+      if (data.success && data.activeYear) {
+        cachedActiveYear = data.activeYear;
+        return cachedActiveYear;
+      }
+    }
+  } catch (error) {
+    console.error("Failed to fetch active year:", error);
+  }
+
+  // 기본값
+  return 2026;
+}
+
 export async function calculateScore(
   U_ID: number,
   scores: ScoreForm,
@@ -152,7 +179,7 @@ export async function getProfile(token: string) {
 
 export async function updateProfile(
   token: string,
-  data: { name?: string; school?: string; grade?: string; gender?: string }
+  data: { name?: string; school?: string; grade?: string; gender?: string; calc_exam_type?: string }
 ) {
   const response = await fetch(`${API_BASE_URL}/saas/profile`, {
     method: "PUT",
