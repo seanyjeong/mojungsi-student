@@ -66,7 +66,10 @@ export function shareScore(data: ShareScoreData): boolean {
     scoreParts.push(`내신 ${formatScore(data.naesinScore)}`);
   }
   if (data.practicalScore && data.practicalScore > 0) {
-    scoreParts.push(`실기 ${formatScore(data.practicalScore)}`);
+    const totalDeduction = data.totalDeduction && data.totalDeduction > 0
+      ? `(${data.totalDeduction}감)`
+      : "";
+    scoreParts.push(`실기 ${formatScore(data.practicalScore)}${totalDeduction}`);
   }
   scoreParts.push(`총점 ${formatScore(data.totalScore)}`);
 
