@@ -3,8 +3,9 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useAuth, getToken, useRequireProfile } from "@/lib/auth";
 import { getUniversities, calculateAll, toggleSaveUniversity, checkIsSaved, getProfile, getScores } from "@/lib/api";
+import { loadCalcExamType } from "@/lib/storage";
 import { ScoreForm } from "@/types";
-import { Heart, Filter, MapPin, Users, TrendingUp, ChevronDown, ChevronUp } from "lucide-react";
+import { Heart, Filter, MapPin, Users, TrendingUp, ChevronDown, ChevronUp, Info, AlertCircle } from "lucide-react";
 
 // 초성 추출 함수
 function getChosung(str: string): string {
@@ -147,6 +148,8 @@ export default function SearchPage() {
   const [savingId, setSavingId] = useState<number | null>(null);
   const [userGender, setUserGender] = useState<string | null>(null);
   const [showChosungBar, setShowChosungBar] = useState(false);
+  const [usedExamType, setUsedExamType] = useState<string | null>(null);
+  const [noScoreWarning, setNoScoreWarning] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const chosungRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
@@ -205,12 +208,31 @@ export default function SearchPage() {
       if (token) {
         try {
           const dbScores = await getScores(token, 2026);
-          // 가장 최근 시험 성적 사용 (DB 형식 → API 형식으로 변환)
-          if (dbScores && dbScores.length > 0 && dbScores[0].scores) {
-            scores = convertDbScoresToScoreForm(dbScores[0].scores);
+          // 사용자가 선택한 시험 타입 로드
+          const selectedExamType = loadCalcExamType();
+
+          if (dbScores && dbScores.length > 0) {
+            // 선택된 시험 타입의 성적 찾기
+            const selectedScore = dbScores.find((s: any) => s.exam_type === selectedExamType);
+
+            if (selectedScore?.scores) {
+              // 선택된 시험의 성적 사용
+              scores = convertDbScoresToScoreForm(selectedScore.scores);
+              setUsedExamType(selectedExamType);
+              setNoScoreWarning(false);
+            } else if (dbScores[0].scores) {
+              // 선택된 시험에 성적이 없으면 첫 번째 성적 사용 (fallback)
+              scores = convertDbScoresToScoreForm(dbScores[0].scores);
+              setUsedExamType(dbScores[0].exam_type);
+              setNoScoreWarning(true); // 경고 표시
+            }
+          } else {
+            setUsedExamType(null);
+            setNoScoreWarning(false);
           }
         } catch {
           // DB 실패 시 계산 없이 진행
+          setUsedExamType(null);
         }
       }
       // 로그인 안 되어 있으면 scores는 null이므로 계산 안 됨
@@ -352,6 +374,41 @@ export default function SearchPage() {
 
   return (
     <div className="space-y-4 pb-20">
+      {/* 사용 중인 성적 안내 배너 */}
+      {usedExamType && (
+        <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm ${
+          noScoreWarning
+            ? "bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400"
+            : "bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400"
+        }`}>
+          {noScoreWarning ? (
+            <>
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>
+                선택한 시험 성적이 없어 <strong>{usedExamType}</strong> 성적으로 계산합니다
+              </span>
+            </>
+          ) : (
+            <>
+              <Info className="w-4 h-4 flex-shrink-0" />
+              <span>
+                <strong>{usedExamType}</strong> 성적으로 환산점수를 계산합니다
+              </span>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* 성적 미입력 안내 */}
+      {!usedExamType && isLoggedIn && !loading && (
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400">
+          <Info className="w-4 h-4 flex-shrink-0" />
+          <span>
+            내정보에서 성적을 입력하면 환산점수를 확인할 수 있습니다
+          </span>
+        </div>
+      )}
+
       {/* Search Bar */}
       <div className="flex gap-2">
         <input
