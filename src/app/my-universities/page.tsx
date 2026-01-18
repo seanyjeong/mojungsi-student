@@ -247,16 +247,8 @@ export default function MyUniversitiesPage() {
 
                 {/* 점수 영역 - 한 줄 */}
                 <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-700 flex items-center gap-3">
-                  {/* 총점 */}
-                  <div className="flex-shrink-0">
-                    <p className="text-2xl font-bold text-zinc-800 dark:text-zinc-100">
-                      {totalScore > 0 ? totalScore.toFixed(1) : "-"}
-                      <span className="text-xs font-normal text-zinc-400 ml-0.5">점</span>
-                    </p>
-                  </div>
-
                   {/* 세부 점수 카드 */}
-                  <div className="flex gap-1.5 flex-1 justify-end">
+                  <div className="flex gap-1.5">
                     <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg py-1 px-2 text-center min-w-[50px]">
                       <p className="text-[9px] text-blue-500 dark:text-blue-400">수능</p>
                       <p className="text-xs font-semibold text-blue-700 dark:text-blue-300">
@@ -277,6 +269,14 @@ export default function MyUniversitiesPage() {
                         {s.practical_score ? Number(s.practical_score).toFixed(0) : "-"}
                       </p>
                     </div>
+                  </div>
+
+                  {/* 총점 - 오른쪽 끝 */}
+                  <div className="flex-1 text-right">
+                    <p className="text-2xl font-bold text-zinc-800 dark:text-zinc-100">
+                      {totalScore > 0 ? totalScore.toFixed(1) : "-"}
+                      <span className="text-xs font-normal text-zinc-400 ml-0.5">점</span>
+                    </p>
                   </div>
                 </div>
               </div>
