@@ -18,7 +18,7 @@ export async function getActiveYear(): Promise<number> {
       const data = await response.json();
       if (data.success && data.activeYear) {
         cachedActiveYear = data.activeYear;
-        return cachedActiveYear;
+        return data.activeYear;
       }
     }
   } catch (error) {
