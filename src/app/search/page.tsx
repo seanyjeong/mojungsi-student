@@ -88,14 +88,21 @@ function transformApiResponse(apiData: any[]): University[] {
       const config = fc?.display_config || {};
       const ratios = config.비율 || {};
 
-      // display_config가 있으면 그걸 사용, 없으면 formula_configs 필드에서 직접 추출
-      const suneungRatio = ratios.수능
+      // jungsi_ratio 데이터 우선 사용, 없으면 display_config에서 추출
+      const jungsiRatio = dept.jungsi_ratio;
+      const suneungRatio = jungsiRatio?.suneung != null
+        ? Number(jungsiRatio.suneung)
+        : ratios.수능
         ? parseInt(ratios.수능)
         : fc?.suneung_ratio
         ? parseFloat(fc.suneung_ratio)
         : 100;
-      const naesinRatio = ratios.내신 ? parseInt(ratios.내신) : 0;
-      const silgiRatio = ratios.실기
+      const naesinRatio = jungsiRatio?.naesin != null
+        ? Number(jungsiRatio.naesin)
+        : ratios.내신 ? parseInt(ratios.내신) : 0;
+      const silgiRatio = jungsiRatio?.silgi != null
+        ? Number(jungsiRatio.silgi)
+        : ratios.실기 && ratios.실기 !== ""
         ? parseInt(ratios.실기)
         : fc?.practical_total > 0
         ? 100 - suneungRatio
