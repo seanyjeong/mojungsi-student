@@ -563,6 +563,40 @@ export default function SearchPage() {
   );
 }
 
+// 과목별 반영비율 셀 컴포넌트
+function SubjectRatioCell({ label, value, suffix }: { label: string; value?: string; suffix?: string }) {
+  // 값 분석: 괄호=선택반영, 감점/가산=특수, 숫자=고정
+  const isSelection = value?.includes("(") && value?.includes(")");
+  const isSpecial = value && (value.includes("감점") || value.includes("가산") || value === "필수응시");
+  const isEmpty = !value || value === "-" || value === "";
+
+  // 배경색 및 텍스트 색상 결정
+  let bgClass = "bg-zinc-50 dark:bg-zinc-700/50";
+  let textClass = "font-medium";
+  let displayValue = value || "-";
+
+  if (isSelection) {
+    bgClass = "bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800";
+    textClass = "font-semibold text-orange-600 dark:text-orange-400";
+  } else if (isSpecial) {
+    bgClass = "bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800";
+    textClass = "font-semibold text-red-600 dark:text-red-400";
+  } else if (isEmpty) {
+    textClass = "text-zinc-400";
+    displayValue = "-";
+  }
+
+  return (
+    <div className={`rounded px-2 py-1.5 ${bgClass}`}>
+      <span className="text-zinc-500 text-[10px]">{label}</span>
+      <p className={textClass}>
+        {displayValue}
+        {suffix && <span className="text-zinc-400 ml-1 text-[10px]">{suffix}</span>}
+      </p>
+    </div>
+  );
+}
+
 function UniversityCard({
   univ,
   onToggleSave,
@@ -689,35 +723,26 @@ function UniversityCard({
             <div>
               <p className="text-xs font-medium text-zinc-500 mb-2">과목별 반영비율</p>
               <div className="grid grid-cols-3 gap-2 text-xs">
-                <div className="bg-zinc-50 dark:bg-zinc-700/50 rounded px-2 py-1.5">
-                  <span className="text-zinc-500">국어</span>
-                  <p className="font-medium">{univ.subjectDisplay.korean || "-"}</p>
-                </div>
-                <div className="bg-zinc-50 dark:bg-zinc-700/50 rounded px-2 py-1.5">
-                  <span className="text-zinc-500">수학</span>
-                  <p className="font-medium">{univ.subjectDisplay.math || "-"}</p>
-                </div>
-                <div className="bg-zinc-50 dark:bg-zinc-700/50 rounded px-2 py-1.5">
-                  <span className="text-zinc-500">영어</span>
-                  <p className="font-medium">{univ.subjectDisplay.english || "-"}</p>
-                </div>
-                <div className="bg-zinc-50 dark:bg-zinc-700/50 rounded px-2 py-1.5">
-                  <span className="text-zinc-500">탐구</span>
-                  <p className="font-medium">
-                    {univ.subjectDisplay.inquiry || "-"}
-                    {univ.subjectDisplay.inquiry_count && (
-                      <span className="text-zinc-400 ml-1">({univ.subjectDisplay.inquiry_count}과목)</span>
-                    )}
-                  </p>
-                </div>
-                <div className="bg-zinc-50 dark:bg-zinc-700/50 rounded px-2 py-1.5">
-                  <span className="text-zinc-500">한국사</span>
-                  <p className="font-medium">{univ.subjectDisplay.history || "-"}</p>
-                </div>
+                <SubjectRatioCell label="국어" value={univ.subjectDisplay.korean} />
+                <SubjectRatioCell label="수학" value={univ.subjectDisplay.math} />
+                <SubjectRatioCell label="영어" value={univ.subjectDisplay.english} />
+                <SubjectRatioCell label="탐구" value={univ.subjectDisplay.inquiry} suffix={univ.subjectDisplay.inquiry_count ? `(${univ.subjectDisplay.inquiry_count}과목)` : undefined} />
+                <SubjectRatioCell label="한국사" value={univ.subjectDisplay.history} />
               </div>
-              <p className="text-[10px] text-zinc-400 mt-2">
-                * 괄호 안 숫자 = 택1 비율 (예: 국/수/영 중 1과목 선택)
-              </p>
+              <div className="flex flex-wrap gap-2 mt-2 text-[10px]">
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-orange-400"></span>
+                  <span className="text-zinc-500">선택반영 (택1)</span>
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-zinc-400"></span>
+                  <span className="text-zinc-500">고정반영</span>
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-red-400"></span>
+                  <span className="text-zinc-500">감점/가산</span>
+                </span>
+              </div>
             </div>
           )}
         </div>
