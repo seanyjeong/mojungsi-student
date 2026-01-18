@@ -21,16 +21,25 @@ git add -A && git commit -m "vX.X.X: 변경내용" && git push
 
 ## 핵심 로직
 
-### 학년별 입시연도 (v0.4.9)
+### 학년별 입시연도
 ```
 profile.grade에 따라 입시연도 결정:
 - 3학년/N수 → 2027년 데이터
-- 2학년 → 2028년 데이터 (없으면 2027 fallback)
+- 2학년 → 2028년 데이터
 
-성적 조회: getScores(token, targetYear)
-점수 계산: calculateAll(scores, userYear)
+성적 조회: getScores(token) - 연도 무관
+점수 계산: calculateAll(scores, userYear) - userYear는 학년으로 결정
 ```
-**파일**: `search/page.tsx` (216-225라인)
+**파일**: `search/page.tsx`
+
+### 성적 저장 (v0.4.14 간소화)
+```
+saas_saved_scores 테이블:
+- user_id: 사용자
+- exam_type: 시험 종류 (3월모의고사, 6월모평, 9월모평, 수능 등)
+- scores: JSON 성적 데이터
+- year: 사용 안 함 (NULL)
+```
 
 ### U_ID 연도 매핑 (중요!)
 ```
@@ -60,9 +69,9 @@ profile.grade에 따라 입시연도 결정:
 ## 데이터 흐름
 
 ```
-[mypage] 성적 입력 → DB 저장 (saas_saved_scores, year=2027)
+[mypage] 성적 입력 → DB 저장 (saas_saved_scores, 연도 없음)
                           ↓
-[search] 학년별 연도 결정 → DB에서 성적 조회 → calculateAll API → 환산점수 표시
+[search] 학년→입시연도 결정 → DB에서 성적 조회 → calculateAll API → 환산점수 표시
                           ↓
 [저장] 대학 저장 시 환산점수도 함께 DB 저장 (sunung_score)
                           ↓
@@ -71,7 +80,7 @@ profile.grade에 따라 입시연도 결정:
 
 ---
 
-## 저장대학 페이지 (v0.4.14)
+## 저장대학 페이지
 
 ### 카드 UI
 ```
@@ -92,7 +101,7 @@ profile.grade에 따라 입시연도 결정:
 ```
 ┌────────┬────────┬────────┐
 │  수능  │  내신  │  실기  │
-│  60%   │  0%    │  40%   │
+│  60%   │   -    │  40%   │
 │  파랑  │  초록  │  보라  │
 └────────┴────────┴────────┘
 ```
@@ -157,8 +166,8 @@ Next.js 15 / TypeScript / Tailwind / Radix UI / lucide-react / @nivo/line
 - 성적 연도 의존성 제거 (year 컬럼 미사용)
 - 입시연도는 학년으로만 결정
 
-### v0.4.14
-- 저장대학 카드 점수 한 줄 레이아웃 (수내실 + 총점)
+### v0.4.13
+- 저장대학 카드 점수 한 줄 레이아웃 (수내실 왼쪽 + 총점 오른쪽)
 
 ### v0.4.10~12
 - 모달 반영비율 카드 UI (수능/내신/실기 색상 구분)
@@ -166,4 +175,3 @@ Next.js 15 / TypeScript / Tailwind / Radix UI / lucide-react / @nivo/line
 
 ### v0.4.9
 - 학년별 입시연도 분기 (2학년→2028, 3학년/N수→2027)
-- 2027 fallback 처리
