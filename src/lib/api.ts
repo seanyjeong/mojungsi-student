@@ -152,7 +152,7 @@ export async function getProfile(token: string) {
 
 export async function updateProfile(
   token: string,
-  data: { name?: string; school?: string; grade?: number; gender?: string }
+  data: { name?: string; school?: string; grade?: string; gender?: string }
 ) {
   const response = await fetch(`${API_BASE_URL}/saas/profile`, {
     method: "PUT",
