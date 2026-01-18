@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { getKakaoLoginUrl, getMe } from "./api";
+import { useRouter } from "next/navigation";
+import { getKakaoLoginUrl, getMe, getProfile } from "./api";
 
 export interface User {
   id: number;
@@ -101,4 +102,40 @@ export function useAuth() {
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("accessToken");
+}
+
+/**
+ * 프로필 필수 정보(성별, 학년) 체크 훅
+ * 로그인 후 성별/학년이 없으면 mypage로 리다이렉트
+ */
+export function useRequireProfile() {
+  const router = useRouter();
+  const [isProfileComplete, setIsProfileComplete] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const checkProfile = async () => {
+      const token = getToken();
+      if (!token) {
+        setIsProfileComplete(false);
+        return;
+      }
+
+      try {
+        const profile = await getProfile(token);
+        if (!profile.gender || !profile.grade) {
+          // 프로필 미완성 - mypage로 리다이렉트
+          router.push("/mypage");
+          setIsProfileComplete(false);
+        } else {
+          setIsProfileComplete(true);
+        }
+      } catch {
+        setIsProfileComplete(false);
+      }
+    };
+
+    checkProfile();
+  }, [router]);
+
+  return { isProfileComplete };
 }

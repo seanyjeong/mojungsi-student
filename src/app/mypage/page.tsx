@@ -3,22 +3,22 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, getToken } from "@/lib/auth";
-import { getProfile, updateProfile, getScores, saveScore } from "@/lib/api";
+import { getProfile, updateProfile, getScores, saveScore, withdrawUser } from "@/lib/api";
 import { saveScores as saveToStorage, saveCalcExamType, loadCalcExamType } from "@/lib/storage";
 import { ScoreForm } from "@/types";
-import { User, Pencil, Save, Book, Calculator, Globe, Landmark, Search } from "lucide-react";
+import { User, Pencil, Save, Book, Calculator, Globe, Landmark, Search, AlertTriangle, X } from "lucide-react";
 
 const EXAM_TYPES = ["3월모의", "6월모의", "9월모의", "수능"];
+const GRADE_OPTIONS = ["1", "2", "3", "N수"];
 
-const 탐구과목 = [
-  "생활과윤리", "윤리와사상", "한국지리", "세계지리", "동아시아사", "세계사", "정치와법", "경제", "사회문화",
-  "물리1", "화학1", "생명과학1", "지구과학1", "물리2", "화학2", "생명과학2", "지구과학2"
-];
+const 사회탐구 = ["생활과윤리", "윤리와사상", "한국지리", "세계지리", "동아시아사", "세계사", "정치와법", "경제", "사회문화"];
+const 과학탐구 = ["물리학Ⅰ", "화학Ⅰ", "생명과학Ⅰ", "지구과학Ⅰ", "물리학Ⅱ", "화학Ⅱ", "생명과학Ⅱ", "지구과학Ⅱ"];
+const 탐구과목 = [...사회탐구, ...과학탐구];
 
 interface Profile {
   name?: string;
   school?: string;
-  grade?: number;
+  grade?: string;  // "1", "2", "3", "N수"
   gender?: string;
   nickname?: string;
   profileImage?: string;
@@ -64,6 +64,10 @@ export default function MyPage() {
   const [currentScore, setCurrentScore] = useState<ScoreData>({});
   const [scoreSaving, setScoreSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [modalProfile, setModalProfile] = useState<{ gender: string; grade: string }>({ gender: "", grade: "" });
+  const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isLoggedIn) {
@@ -93,14 +97,20 @@ export default function MyPage() {
     if (!token) return;
     try {
       const data = await getProfile(token);
-      setProfile({
+      const loadedProfile = {
         name: data.name || "",
         school: data.school || "",
-        grade: data.grade || undefined,
+        grade: data.grade || "",
         gender: data.gender || "",
         nickname: data.nickname || "",
         profileImage: data.profile_image || "",
-      });
+      };
+      setProfile(loadedProfile);
+
+      // 성별 또는 학년이 없으면 모달 표시
+      if (!loadedProfile.gender || !loadedProfile.grade) {
+        setShowProfileModal(true);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -140,6 +150,52 @@ export default function MyPage() {
       setTimeout(() => setMessage(""), 3000);
     } finally {
       setSaving(false);
+    }
+  };
+
+  // 모달에서 필수 정보 저장
+  const handleSaveRequiredProfile = async () => {
+    if (!modalProfile.gender || !modalProfile.grade) {
+      setMessage("❌ 성별과 학년을 모두 선택해주세요");
+      setTimeout(() => setMessage(""), 3000);
+      return;
+    }
+
+    const token = getToken();
+    if (!token) return;
+    setSaving(true);
+    try {
+      await updateProfile(token, {
+        gender: modalProfile.gender,
+        grade: modalProfile.grade,
+      });
+      setProfile(p => ({ ...p, gender: modalProfile.gender, grade: modalProfile.grade }));
+      setShowProfileModal(false);
+      setMessage("✅ 정보가 저장되었습니다!");
+      setTimeout(() => setMessage(""), 3000);
+    } catch (err) {
+      setMessage("❌ 저장에 실패했습니다");
+      setTimeout(() => setMessage(""), 3000);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // 회원탈퇴
+  const handleWithdraw = async () => {
+    const token = getToken();
+    if (!token) return;
+    setWithdrawing(true);
+    try {
+      await withdrawUser(token);
+      logout();
+      router.push("/");
+    } catch (err) {
+      setMessage("❌ 회원탈퇴에 실패했습니다");
+      setTimeout(() => setMessage(""), 3000);
+    } finally {
+      setWithdrawing(false);
+      setShowWithdrawConfirm(false);
     }
   };
 
@@ -314,10 +370,31 @@ export default function MyPage() {
               onChange={(v) => setProfile(p => ({ ...p, name: v }))} />
             <InfoRow label="학교" value={profile.school} editMode={editMode}
               onChange={(v) => setProfile(p => ({ ...p, school: v }))} />
-            <InfoRow label="학년" value={profile.grade?.toString()} editMode={editMode} type="number"
-              onChange={(v) => setProfile(p => ({ ...p, grade: v ? parseInt(v) : undefined }))} />
+
+            {/* 학년 - 선택식 */}
             <div className="flex justify-between items-center py-3 border-b border-zinc-100 dark:border-zinc-700">
-              <span className="text-zinc-500 text-sm">성별</span>
+              <span className="text-zinc-500 text-sm">학년 <span className="text-red-500">*</span></span>
+              {editMode ? (
+                <select
+                  value={profile.grade || ""}
+                  onChange={(e) => setProfile(p => ({ ...p, grade: e.target.value }))}
+                  className="text-sm border rounded-lg px-2 py-1 dark:bg-zinc-700 dark:border-zinc-600"
+                >
+                  <option value="">선택</option>
+                  {GRADE_OPTIONS.map(g => (
+                    <option key={g} value={g}>{g === "N수" ? "N수" : `${g}학년`}</option>
+                  ))}
+                </select>
+              ) : (
+                <span className="font-medium">
+                  {profile.grade ? (profile.grade === "N수" ? "N수" : `${profile.grade}학년`) : "미입력"}
+                </span>
+              )}
+            </div>
+
+            {/* 성별 */}
+            <div className="flex justify-between items-center py-3 border-b border-zinc-100 dark:border-zinc-700">
+              <span className="text-zinc-500 text-sm">성별 <span className="text-red-500">*</span></span>
               {editMode ? (
                 <select
                   value={profile.gender || ""}
@@ -334,11 +411,12 @@ export default function MyPage() {
             </div>
           </div>
 
+          {/* 회원탈퇴 */}
           <button
-            onClick={logout}
-            className="w-full mt-6 py-3 border border-red-300 text-red-500 rounded-xl hover:bg-red-50 transition"
+            onClick={() => setShowWithdrawConfirm(true)}
+            className="w-full mt-6 py-3 text-zinc-400 text-sm hover:text-red-500 transition"
           >
-            로그아웃
+            회원탈퇴
           </button>
         </div>
       )}
@@ -441,6 +519,7 @@ export default function MyPage() {
             subjectKey="탐구1"
             subjectOptions={탐구과목}
             fullWidthSubject
+            grouped
           />
 
           <ScoreCard
@@ -452,6 +531,8 @@ export default function MyPage() {
             subjectKey="탐구2"
             subjectOptions={탐구과목}
             fullWidthSubject
+            grouped
+            excludeSubject={currentScore.탐구1_선택과목}
           />
 
           <button
@@ -461,6 +542,109 @@ export default function MyPage() {
           >
             {scoreSaving ? "저장 중..." : "성적 저장하기"}
           </button>
+        </div>
+      )}
+
+      {/* 필수 정보 입력 모달 */}
+      {showProfileModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <h3 className="text-lg font-bold mb-2">환영합니다! 👋</h3>
+            <p className="text-sm text-zinc-500 mb-6">
+              서비스 이용을 위해 아래 정보를 입력해주세요.
+            </p>
+
+            <div className="space-y-4">
+              {/* 성별 */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  성별 <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-2">
+                  {["남", "여"].map((g) => (
+                    <button
+                      key={g}
+                      onClick={() => setModalProfile(p => ({ ...p, gender: g }))}
+                      className={`flex-1 py-3 rounded-xl font-medium transition ${
+                        modalProfile.gender === g
+                          ? "bg-blue-500 text-white"
+                          : "bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400"
+                      }`}
+                    >
+                      {g}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 학년 */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  학년 <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-2">
+                  {GRADE_OPTIONS.map((g) => (
+                    <button
+                      key={g}
+                      onClick={() => setModalProfile(p => ({ ...p, grade: g }))}
+                      className={`flex-1 py-3 rounded-xl font-medium transition ${
+                        modalProfile.grade === g
+                          ? "bg-blue-500 text-white"
+                          : "bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400"
+                      }`}
+                    >
+                      {g === "N수" ? "N수" : g}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={handleSaveRequiredProfile}
+              disabled={saving || !modalProfile.gender || !modalProfile.grade}
+              className="w-full mt-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-xl disabled:opacity-50 transition"
+            >
+              {saving ? "저장 중..." : "시작하기"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 회원탈퇴 확인 모달 */}
+      {showWithdrawConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-red-500" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold">회원탈퇴</h3>
+                <p className="text-sm text-zinc-500">정말 탈퇴하시겠습니까?</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-zinc-500 mb-6 bg-zinc-50 dark:bg-zinc-700/50 p-3 rounded-lg">
+              탈퇴 시 모든 데이터(성적, 저장한 대학, 실기 기록)가 <span className="text-red-500 font-medium">영구 삭제</span>되며 복구할 수 없습니다.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowWithdrawConfirm(false)}
+                className="flex-1 py-3 border border-zinc-300 dark:border-zinc-600 rounded-xl font-medium transition hover:bg-zinc-50 dark:hover:bg-zinc-700"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleWithdraw}
+                disabled={withdrawing}
+                className="flex-1 py-3 bg-red-500 text-white rounded-xl font-medium transition hover:bg-red-600 disabled:opacity-50"
+              >
+                {withdrawing ? "처리 중..." : "탈퇴하기"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -508,6 +692,8 @@ function ScoreCard({
   noSubject,
   noStandardScore,
   fullWidthSubject,
+  grouped,
+  excludeSubject,
 }: {
   title: string;
   icon: React.ReactNode;
@@ -519,6 +705,8 @@ function ScoreCard({
   noSubject?: boolean;
   noStandardScore?: boolean;
   fullWidthSubject?: boolean;
+  grouped?: boolean;
+  excludeSubject?: string;
 }) {
   const colorMap: Record<string, string> = {
     red: "border-l-red-500 text-red-600",
@@ -534,25 +722,48 @@ function ScoreCard({
     setScore((s) => ({ ...s, [`${subjectKey}_${key}`]: val === "" ? undefined : val }));
   };
 
+  // 과목 필터링 (excludeSubject 제외)
+  const filteredOptions = subjectOptions?.filter(opt => opt !== excludeSubject);
+
   return (
     <div className={`bg-white dark:bg-zinc-800 rounded-xl p-4 border-l-4 ${colorMap[color]} shadow-sm`}>
       <h4 className={`font-semibold mb-3 flex items-center gap-2 ${colorMap[color].split(" ")[1]}`}>
         {icon} {title}
       </h4>
       <div className="grid grid-cols-2 gap-3">
-        {!noSubject && subjectOptions && (
+        {!noSubject && filteredOptions && (
           <div className={fullWidthSubject ? "col-span-2" : ""}>
             <label className="text-xs text-zinc-500 mb-1 block">선택과목</label>
-            <select
-              value={getValue("선택과목")}
-              onChange={(e) => setValue("선택과목", e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg text-sm bg-zinc-50 dark:bg-zinc-700 dark:border-zinc-600"
-            >
-              <option value="">선택하세요</option>
-              {subjectOptions.map((opt) => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
+            {grouped ? (
+              <select
+                value={getValue("선택과목")}
+                onChange={(e) => setValue("선택과목", e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg text-sm bg-zinc-50 dark:bg-zinc-700 dark:border-zinc-600"
+              >
+                <option value="">선택하세요</option>
+                <optgroup label="📚 사회탐구">
+                  {사회탐구.filter(s => s !== excludeSubject).map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="🔬 과학탐구">
+                  {과학탐구.filter(s => s !== excludeSubject).map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </optgroup>
+              </select>
+            ) : (
+              <select
+                value={getValue("선택과목")}
+                onChange={(e) => setValue("선택과목", e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg text-sm bg-zinc-50 dark:bg-zinc-700 dark:border-zinc-600"
+              >
+                <option value="">선택하세요</option>
+                {filteredOptions.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            )}
           </div>
         )}
         <div>

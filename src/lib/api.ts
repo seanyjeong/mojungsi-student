@@ -309,3 +309,14 @@ export async function deletePracticalRecord(token: string, id: number) {
   if (!response.ok) throw new Error("Failed to delete record");
   return response.json();
 }
+
+// ========== 회원탈퇴 API ==========
+
+export async function withdrawUser(token: string) {
+  const response = await fetch(`${API_BASE_URL}/saas/auth/withdraw`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) throw new Error("Failed to withdraw");
+  return response.json();
+}

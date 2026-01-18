@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth, getToken } from "@/lib/auth";
+import { useAuth, getToken, useRequireProfile } from "@/lib/auth";
 import {
   getSavedUniversities,
   toggleSaveUniversity,
@@ -33,6 +33,7 @@ interface SavedUniversity {
 export default function MyUniversitiesPage() {
   const router = useRouter();
   const { isLoggedIn, isLoading } = useAuth();
+  useRequireProfile();
   const [saved, setSaved] = useState<SavedUniversity[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUniv, setSelectedUniv] = useState<SavedUniversity | null>(null);

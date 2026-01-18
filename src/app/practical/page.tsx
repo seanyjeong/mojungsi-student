@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth, getToken } from "@/lib/auth";
+import { useAuth, getToken, useRequireProfile } from "@/lib/auth";
 import {
   getPracticalRecords,
   createPracticalRecord,
@@ -42,6 +42,7 @@ const 실기종목목록 = [
 export default function PracticalPage() {
   const router = useRouter();
   const { isLoggedIn, isLoading } = useAuth();
+  useRequireProfile();
   const [records, setRecords] = useState<PracticalRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);

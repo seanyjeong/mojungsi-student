@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { useAuth, getToken } from "@/lib/auth";
+import { useAuth, getToken, useRequireProfile } from "@/lib/auth";
 import { getUniversities, calculateAll, toggleSaveUniversity, checkIsSaved, getProfile, getScores } from "@/lib/api";
 import { ScoreForm } from "@/types";
 import { Heart, Filter, MapPin, Users, TrendingUp, ChevronDown, ChevronUp } from "lucide-react";
@@ -134,6 +134,7 @@ const 지역목록 = ["서울", "경기", "인천", "강원", "충북", "충남"
 
 export default function SearchPage() {
   const { isLoggedIn } = useAuth();
+  const { isProfileComplete } = useRequireProfile();
   const [universities, setUniversities] = useState<CalculatedUniv[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedGun, setSelectedGun] = useState("전체");
