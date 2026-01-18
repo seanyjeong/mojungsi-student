@@ -247,44 +247,38 @@ export default function MyUniversitiesPage() {
 
                 {/* 점수 영역 */}
                 <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-700">
-                  {/* 총점 크게 */}
-                  <div className="text-center mb-2">
-                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  {/* 총점 */}
+                  <div className="text-center mb-3">
+                    <p className="text-2xl font-bold text-zinc-800 dark:text-zinc-100">
                       {totalScore > 0 ? totalScore.toFixed(1) : "-"}
-                      <span className="text-sm font-normal text-zinc-500 ml-1">
-                        점
-                      </span>
+                      <span className="text-sm font-normal text-zinc-500 ml-1">점</span>
                     </p>
                   </div>
 
-                  {/* 세부 점수 작게 */}
-                  <div className="flex justify-center gap-4 text-xs text-zinc-500">
-                    <span>
-                      수능{" "}
-                      <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                        {s.sunung_score
-                          ? Number(s.sunung_score).toFixed(1)
-                          : "-"}
-                      </span>
-                    </span>
-                    {hasNaesin && (
-                      <span>
-                        내신{" "}
-                        <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                          {s.naesin_score
-                            ? Number(s.naesin_score).toFixed(1)
-                            : "-"}
-                        </span>
-                      </span>
+                  {/* 세부 점수 카드 */}
+                  <div className="grid grid-cols-3 gap-1.5">
+                    <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg py-1.5 px-2 text-center">
+                      <p className="text-[10px] text-blue-500 dark:text-blue-400">수능</p>
+                      <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                        {s.sunung_score ? Number(s.sunung_score).toFixed(0) : "-"}
+                      </p>
+                    </div>
+                    {hasNaesin ? (
+                      <div className="bg-green-50 dark:bg-green-900/30 rounded-lg py-1.5 px-2 text-center">
+                        <p className="text-[10px] text-green-500 dark:text-green-400">내신</p>
+                        <p className="text-sm font-semibold text-green-700 dark:text-green-300">
+                          {s.naesin_score ? Number(s.naesin_score).toFixed(0) : "-"}
+                        </p>
+                      </div>
+                    ) : (
+                      <div></div>
                     )}
-                    <span>
-                      실기{" "}
-                      <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                        {s.practical_score
-                          ? Number(s.practical_score).toFixed(1)
-                          : "-"}
-                      </span>
-                    </span>
+                    <div className="bg-purple-50 dark:bg-purple-900/30 rounded-lg py-1.5 px-2 text-center">
+                      <p className="text-[10px] text-purple-500 dark:text-purple-400">실기</p>
+                      <p className="text-sm font-semibold text-purple-700 dark:text-purple-300">
+                        {s.practical_score ? Number(s.practical_score).toFixed(0) : "-"}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
