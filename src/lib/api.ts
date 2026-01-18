@@ -195,8 +195,8 @@ export async function updateProfile(
 
 // ========== Scores API ==========
 
-export async function getScores(token: string, year: number = 2026) {
-  const response = await fetch(`${API_BASE_URL}/saas/scores?year=${year}`, {
+export async function getScores(token: string) {
+  const response = await fetch(`${API_BASE_URL}/saas/scores`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok) throw new Error("Failed to get scores");

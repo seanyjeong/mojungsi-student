@@ -214,15 +214,10 @@ export default function SearchPage() {
           const selectedExamType = profile.calc_exam_type || "수능";
 
           // 학년에 따라 입시연도 결정: 2학년→2028, 3학년/N수→2027
-          const targetYear = profile.grade === "2학년" ? 2028 : 2027;
-          userYear = targetYear;
+          userYear = profile.grade === "2학년" ? 2028 : 2027;
 
-          // 해당 연도 성적 조회, 없으면 2027로 fallback
-          let dbScores = await getScores(token, targetYear);
-          if ((!dbScores || dbScores.length === 0) && targetYear !== 2027) {
-            dbScores = await getScores(token, 2027);
-            userYear = 2027; // fallback 시 연도도 변경
-          }
+          // 성적 조회 (연도 무관)
+          const dbScores = await getScores(token);
 
           if (dbScores && dbScores.length > 0) {
             // 선택된 시험 타입의 성적 찾기
