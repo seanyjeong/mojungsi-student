@@ -82,13 +82,14 @@ export function shareScore(data: ShareScoreData): boolean {
     }
   }
 
-  // 텍스트 메시지 구성
-  const text = `[정시계산기]
+  // 텍스트 메시지 구성 (심플한 이모지)
+  const text = `📊 정시계산기
 
-${data.universityName} ${data.departmentName}
-총점 ${data.totalScore.toFixed(1)}점
+${data.universityName}
+${data.departmentName}
 
-${scores.join(" / ")}${practicalSummary}`;
+✓ 총점 ${data.totalScore.toFixed(1)}점
+${scores.join(" · ")}${practicalSummary}`;
 
   try {
     window.Kakao.Share.sendDefault({
