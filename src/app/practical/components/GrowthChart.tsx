@@ -2,24 +2,38 @@
 
 import { useState, useEffect } from "react";
 import { ResponsiveLine } from "@nivo/line";
-import { TrendingUp, TrendingDown, Trophy, Activity } from "lucide-react";
+import { TrendingUp, TrendingDown, Trophy, Activity, ChevronDown } from "lucide-react";
 import { getToken } from "@/lib/auth";
 import { getPracticalHistory, EventType, HistoryData } from "@/lib/api";
 
-interface GrowthChartProps {
-  eventTypes: EventType[];
+interface PracticalRecord {
+  id: number;
+  event_name: string;
+  record: string | null;
+  record_date: string | null;
+  memo: string | null;
 }
 
-export default function GrowthChart({ eventTypes }: GrowthChartProps) {
+interface GrowthChartProps {
+  eventTypes: EventType[];
+  records: PracticalRecord[];
+}
+
+export default function GrowthChart({ eventTypes, records }: GrowthChartProps) {
   const [selectedEvent, setSelectedEvent] = useState<string>("");
   const [historyData, setHistoryData] = useState<HistoryData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  // 기록이 있는 종목만 필터링
+  const eventNamesWithRecords = new Set(records.map((r) => r.event_name));
+  const availableEventTypes = eventTypes.filter((et) => eventNamesWithRecords.has(et.name));
 
   useEffect(() => {
-    if (eventTypes.length > 0 && !selectedEvent) {
-      setSelectedEvent(eventTypes[0].name);
+    if (availableEventTypes.length > 0 && !selectedEvent) {
+      setSelectedEvent(availableEventTypes[0].name);
     }
-  }, [eventTypes, selectedEvent]);
+  }, [availableEventTypes, selectedEvent]);
 
   useEffect(() => {
     if (selectedEvent) {
@@ -44,8 +58,8 @@ export default function GrowthChart({ eventTypes }: GrowthChartProps) {
 
   const selectedEventType = eventTypes.find((et) => et.name === selectedEvent);
 
-  // 그래프 데이터 준비
-  const chartData =
+  // 그래프 데이터 준비 - 같은 날짜는 베스트 기록만
+  const rawChartData =
     historyData?.records
       .filter((r) => r.numeric_record && r.record_date)
       .map((r) => ({
@@ -54,6 +68,24 @@ export default function GrowthChart({ eventTypes }: GrowthChartProps) {
         record: r.record,
         memo: r.memo,
       })) || [];
+
+  // 날짜별 베스트 기록만 추출
+  const chartData = Object.values(
+    rawChartData.reduce((acc, curr) => {
+      const date = curr.x;
+      if (!acc[date]) {
+        acc[date] = curr;
+      } else {
+        // direction에 따라 베스트 결정
+        if (selectedEventType?.direction === "lower") {
+          if (curr.y < acc[date].y) acc[date] = curr;
+        } else {
+          if (curr.y > acc[date].y) acc[date] = curr;
+        }
+      }
+      return acc;
+    }, {} as Record<string, typeof rawChartData[0]>)
+  ).sort((a, b) => new Date(a.x).getTime() - new Date(b.x).getTime());
 
   const nivoData = [
     {
@@ -74,23 +106,79 @@ export default function GrowthChart({ eventTypes }: GrowthChartProps) {
     }
   }
 
+  // 기록이 있는 종목이 없으면
+  if (availableEventTypes.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-zinc-500">
+        <Activity className="w-12 h-12 mb-4 text-zinc-300" />
+        <p>기록이 있는 종목이 없습니다</p>
+        <p className="text-sm mt-1">기록 관리 탭에서 기록을 추가하세요</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
-      {/* 종목 선택 */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {eventTypes.map((event) => (
-          <button
-            key={event.id}
-            onClick={() => setSelectedEvent(event.name)}
-            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition ${
-              selectedEvent === event.name
-                ? "bg-blue-500 text-white"
-                : "bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-600"
+      {/* 종목 선택 드롭다운 */}
+      <div className="relative">
+        <button
+          onClick={() => setDropdownOpen(!dropdownOpen)}
+          className="w-full px-4 py-3 bg-white dark:bg-zinc-800 border dark:border-zinc-700 rounded-xl flex items-center justify-between shadow-sm"
+        >
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{selectedEvent}</span>
+            {selectedEventType?.unit && (
+              <span className="text-sm text-zinc-400">({selectedEventType.unit})</span>
+            )}
+            {selectedEventType?.direction === "lower" && (
+              <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-2 py-0.5 rounded-full">
+                낮을수록 좋음
+              </span>
+            )}
+          </div>
+          <ChevronDown
+            className={`w-5 h-5 text-zinc-400 transition-transform ${
+              dropdownOpen ? "rotate-180" : ""
             }`}
-          >
-            {event.name}
-          </button>
-        ))}
+          />
+        </button>
+
+        {dropdownOpen && (
+          <>
+            <div
+              className="fixed inset-0 z-10"
+              onClick={() => setDropdownOpen(false)}
+            />
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-zinc-800 border dark:border-zinc-700 rounded-xl shadow-lg z-20 overflow-hidden">
+              {availableEventTypes.map((event) => (
+                <button
+                  key={event.id}
+                  onClick={() => {
+                    setSelectedEvent(event.name);
+                    setDropdownOpen(false);
+                  }}
+                  className={`w-full px-4 py-3 text-left flex items-center justify-between hover:bg-zinc-50 dark:hover:bg-zinc-700 transition ${
+                    selectedEvent === event.name
+                      ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
+                      : ""
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{event.name}</span>
+                    {event.unit && (
+                      <span className="text-sm text-zinc-400">({event.unit})</span>
+                    )}
+                  </div>
+                  {event.direction === "lower" ? (
+                    <TrendingDown className="w-4 h-4 text-green-500" />
+                  ) : (
+                    <TrendingUp className="w-4 h-4 text-blue-500" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {loading ? (
@@ -208,7 +296,7 @@ export default function GrowthChart({ eventTypes }: GrowthChartProps) {
                 areaOpacity={0.1}
                 useMesh={true}
                 tooltip={({ point }) => {
-                  const pointIndex = chartData.findIndex(d => d.x === point.data.x);
+                  const pointIndex = chartData.findIndex((d) => d.x === point.data.x);
                   const dataPoint = chartData[pointIndex];
                   const isPB = pointIndex === pbIndex;
                   return (
@@ -273,12 +361,17 @@ export default function GrowthChart({ eventTypes }: GrowthChartProps) {
                 .slice()
                 .reverse()
                 .map((record, idx) => {
+                  const recordDate = record.record_date?.split("T")[0];
                   const isPB =
                     chartData.length > 0 &&
                     pbIndex >= 0 &&
-                    chartData[pbIndex]?.x === record.record_date?.split("T")[0];
+                    chartData[pbIndex]?.x === recordDate &&
+                    chartData[pbIndex]?.y === parseFloat(record.numeric_record || "0");
                   return (
-                    <div key={record.id} className="px-4 py-3 flex items-center justify-between">
+                    <div
+                      key={record.id}
+                      className="px-4 py-3 flex items-center justify-between"
+                    >
                       <div className="flex items-center gap-3">
                         <div className="w-8 text-center text-zinc-400 text-sm">
                           {historyData.records.length - idx}
@@ -286,9 +379,7 @@ export default function GrowthChart({ eventTypes }: GrowthChartProps) {
                         <div>
                           <p className="font-medium flex items-center gap-2">
                             {record.record || "-"}
-                            {isPB && (
-                              <Trophy className="w-4 h-4 text-amber-500" />
-                            )}
+                            {isPB && <Trophy className="w-4 h-4 text-amber-500" />}
                           </p>
                           {record.record_date && (
                             <p className="text-xs text-zinc-500">

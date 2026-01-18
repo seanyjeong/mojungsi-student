@@ -116,7 +116,7 @@ export default function PracticalPage() {
         {activeTab === "records" && (
           <RecordTab records={records} eventTypes={eventTypes} onRefresh={loadData} />
         )}
-        {activeTab === "chart" && <GrowthChart eventTypes={eventTypes} />}
+        {activeTab === "chart" && <GrowthChart eventTypes={eventTypes} records={records} />}
         {activeTab === "settings" && (
           <EventSettings eventTypes={eventTypes} onRefresh={loadData} />
         )}
