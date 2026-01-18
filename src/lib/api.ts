@@ -233,7 +233,17 @@ export async function toggleSaveUniversity(token: string, uId: number, sunungSco
 export async function updateSavedUniversity(
   token: string,
   uId: number,
-  data: { naesin_score?: number; memo?: string }
+  data: {
+    naesin_score?: number;
+    memo?: string;
+    practical_score?: number;
+    practical_records?: Array<{
+      event: string;
+      record: string;
+      score?: number;
+      deduction?: number;
+    }>;
+  }
 ) {
   const response = await fetch(`${API_BASE_URL}/saas/universities/${uId}`, {
     method: "PUT",
@@ -244,6 +254,24 @@ export async function updateSavedUniversity(
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Failed to update");
+  return response.json();
+}
+
+// 실기 배점표 조회
+export async function getPracticalScoreTable(
+  token: string,
+  uId: number,
+  year: number = 2026,
+  gender?: string
+) {
+  const params = new URLSearchParams({ year: String(year) });
+  if (gender) params.append("gender", gender);
+
+  const response = await fetch(
+    `${API_BASE_URL}/saas/universities/${uId}/practical-scores?${params}`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (!response.ok) throw new Error("Failed to get practical scores");
   return response.json();
 }
 

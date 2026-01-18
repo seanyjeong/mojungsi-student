@@ -1,20 +1,30 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, getToken, useRequireProfile } from "@/lib/auth";
 import {
   getSavedUniversities,
   toggleSaveUniversity,
   updateSavedUniversity,
+  getPracticalScoreTable,
+  getProfile,
 } from "@/lib/api";
-import { Heart, MapPin, X, Save } from "lucide-react";
+import {
+  calculatePracticalScore,
+  PracticalConfig,
+  ScoreRow,
+  EventRecord,
+} from "@/lib/practical-calc";
+import { Heart, MapPin, X, Save, Loader2 } from "lucide-react";
 
 interface SavedUniversity {
   id: number;
   U_ID: number;
-  sunung_score: number | null;  // 저장 시점의 수능환산점수
+  sunung_score: number | null;
   naesin_score: number | null;
+  practical_score: number | null;
+  practical_records: EventRecord[] | null;
   memo: string | null;
   university: {
     U_NM: string;
@@ -30,13 +40,26 @@ interface SavedUniversity {
   };
 }
 
+interface PracticalScoreData {
+  events: string[];
+  scoreTable: Record<string, ScoreRow[]>;
+  practicalMode: "basic" | "special";
+  practicalTotal: number;
+  baseScore: number;
+  failHandling: string;
+  specialConfig: any;
+}
+
 export default function MyUniversitiesPage() {
   const router = useRouter();
   const { isLoggedIn, isLoading } = useAuth();
   useRequireProfile();
   const [saved, setSaved] = useState<SavedUniversity[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedUniv, setSelectedUniv] = useState<SavedUniversity | null>(null);
+  const [selectedUniv, setSelectedUniv] = useState<SavedUniversity | null>(
+    null
+  );
+  const [userGender, setUserGender] = useState<string>("");
 
   useEffect(() => {
     if (!isLoading && !isLoggedIn) {
@@ -47,8 +70,20 @@ export default function MyUniversitiesPage() {
   useEffect(() => {
     if (isLoggedIn) {
       loadSaved();
+      loadUserProfile();
     }
   }, [isLoggedIn]);
+
+  const loadUserProfile = async () => {
+    const token = getToken();
+    if (!token) return;
+    try {
+      const profile = await getProfile(token);
+      setUserGender(profile.gender || "");
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const loadSaved = async () => {
     const token = getToken();
@@ -56,8 +91,9 @@ export default function MyUniversitiesPage() {
     setLoading(true);
     try {
       const data = await getSavedUniversities(token);
-      // university가 null인 항목 필터링
-      const validData = data.filter((s: SavedUniversity) => s.university !== null);
+      const validData = data.filter(
+        (s: SavedUniversity) => s.university !== null
+      );
       setSaved(validData);
     } catch (err) {
       console.error(err);
@@ -91,7 +127,11 @@ export default function MyUniversitiesPage() {
       <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
         <Heart className="w-16 h-16 text-zinc-300 mb-4" />
         <h2 className="text-xl font-bold mb-2">로그인이 필요합니다</h2>
-        <p className="text-zinc-500 mb-4">저장 대학 관리를 위해<br />로그인해 주세요</p>
+        <p className="text-zinc-500 mb-4">
+          저장 대학 관리를 위해
+          <br />
+          로그인해 주세요
+        </p>
       </div>
     );
   }
@@ -99,9 +139,7 @@ export default function MyUniversitiesPage() {
   return (
     <div className="space-y-4 pb-20">
       <h1 className="text-xl font-bold">내 저장 대학</h1>
-      <p className="text-sm text-zinc-500">
-        저장된 대학: {saved.length}개
-      </p>
+      <p className="text-sm text-zinc-500">저장된 대학: {saved.length}개</p>
 
       {saved.length === 0 ? (
         <div className="text-center py-10 text-zinc-500">
@@ -141,17 +179,17 @@ export default function MyUniversitiesPage() {
                 </span>
               </div>
 
-              {/* 실기종목 */}
               {s.university.실기종목 && (
                 <p className="text-xs text-zinc-500 mt-2">
                   실기: {s.university.실기종목}
                 </p>
               )}
 
-              {/* Score Summary */}
-              <div className={`mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-700 grid gap-2 text-center ${
-                s.university.내신반영비율 > 0 ? 'grid-cols-3' : 'grid-cols-2'
-              }`}>
+              <div
+                className={`mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-700 grid gap-2 text-center ${
+                  s.university.내신반영비율 > 0 ? "grid-cols-3" : "grid-cols-2"
+                }`}
+              >
                 <div>
                   <p className="text-xs text-zinc-500">수능환산</p>
                   <p className="font-bold text-blue-600">
@@ -168,7 +206,11 @@ export default function MyUniversitiesPage() {
                 )}
                 <div>
                   <p className="text-xs text-zinc-500">실기</p>
-                  <p className="font-bold text-purple-600">-</p>
+                  <p className="font-bold text-purple-600">
+                    {s.practical_score
+                      ? Number(s.practical_score).toFixed(1)
+                      : "-"}
+                  </p>
                 </div>
               </div>
             </div>
@@ -176,10 +218,10 @@ export default function MyUniversitiesPage() {
         </div>
       )}
 
-      {/* Detail Modal */}
       {selectedUniv && (
         <UniversityModal
           saved={selectedUniv}
+          userGender={userGender}
           onClose={() => setSelectedUniv(null)}
           onUpdate={loadSaved}
         />
@@ -190,37 +232,136 @@ export default function MyUniversitiesPage() {
 
 function UniversityModal({
   saved,
+  userGender,
   onClose,
   onUpdate,
 }: {
   saved: SavedUniversity;
+  userGender: string;
   onClose: () => void;
   onUpdate: () => void;
 }) {
-  const [naesinScore, setNaesinScore] = useState(saved.naesin_score?.toString() || "");
+  const [naesinScore, setNaesinScore] = useState(
+    saved.naesin_score?.toString() || ""
+  );
   const [memo, setMemo] = useState(saved.memo || "");
   const [saving, setSaving] = useState(false);
 
-  const univ = saved.university;
-  const sunungScore = saved.sunung_score ? Number(saved.sunung_score) : undefined;
+  // 실기 관련 상태
+  const [practicalData, setPracticalData] = useState<PracticalScoreData | null>(
+    null
+  );
+  const [practicalLoading, setPracticalLoading] = useState(false);
+  const [practicalRecords, setPracticalRecords] = useState<
+    Record<string, string>
+  >({});
+  const [practicalResult, setPracticalResult] = useState<{
+    totalScore: number;
+    events: EventRecord[];
+    totalDeduction: number;
+  } | null>(null);
 
-  // Calculate total score
+  const univ = saved.university;
+  const sunungScore = saved.sunung_score ? Number(saved.sunung_score) : 0;
+  const hasPractical =
+    univ.실기반영비율 > 0 && univ.실기종목 && univ.실기종목.length > 0;
+
+  // 배점표 로드
+  useEffect(() => {
+    const loadData = async () => {
+      const token = getToken();
+      if (!token) return;
+
+      setPracticalLoading(true);
+      try {
+        const data = await getPracticalScoreTable(
+          token,
+          saved.U_ID,
+          2026,
+          userGender
+        );
+        setPracticalData(data);
+      } catch (err) {
+        console.error("Failed to load practical data:", err);
+      } finally {
+        setPracticalLoading(false);
+      }
+    };
+
+    if (hasPractical) {
+      loadData();
+    }
+  }, [saved.U_ID, hasPractical, userGender]);
+
+  // 저장된 실기 기록 복원
+  useEffect(() => {
+    if (saved.practical_records) {
+      const records: Record<string, string> = {};
+      for (const rec of saved.practical_records) {
+        records[rec.event] = rec.record || "";
+      }
+      setPracticalRecords(records);
+    }
+  }, [saved.practical_records]);
+
+  // 실기 점수 계산
+  const calculatePractical = useCallback(() => {
+    if (!practicalData || !practicalData.events.length) return null;
+
+    const config: PracticalConfig = {
+      practicalMode: practicalData.practicalMode,
+      practicalTotal: practicalData.practicalTotal,
+      baseScore: practicalData.baseScore,
+      failHandling: practicalData.failHandling,
+      U_ID: saved.U_ID,
+    };
+
+    const studentRecords = practicalData.events.map((event) => ({
+      event,
+      record: practicalRecords[event] || "",
+    }));
+
+    return calculatePracticalScore(
+      config,
+      practicalData.scoreTable,
+      studentRecords,
+      userGender
+    );
+  }, [practicalData, practicalRecords, userGender, saved.U_ID]);
+
+  // 기록 변경 시 자동 계산
+  useEffect(() => {
+    if (practicalData) {
+      const result = calculatePractical();
+      setPracticalResult(result);
+    }
+  }, [practicalRecords, practicalData, calculatePractical]);
+
+  // 총점 계산
   const totalScore = useMemo(() => {
-    let total = 0;
-    if (sunungScore) total += sunungScore;
+    let total = sunungScore;
     if (naesinScore) total += parseFloat(naesinScore);
-    // TODO: Add practical score
+    if (practicalResult) total += practicalResult.totalScore;
     return total;
-  }, [sunungScore, naesinScore]);
+  }, [sunungScore, naesinScore, practicalResult]);
 
   const handleSave = async () => {
     const token = getToken();
     if (!token) return;
     setSaving(true);
     try {
+      const practicalRecordsList: EventRecord[] = practicalResult?.events || [];
+
       await updateSavedUniversity(token, saved.U_ID, {
         naesin_score: naesinScore ? parseFloat(naesinScore) : undefined,
         memo: memo || undefined,
+        practical_score: practicalResult?.totalScore,
+        practical_records: practicalRecordsList.map((ev) => ({
+          event: ev.event,
+          record: ev.record,
+          score: ev.score,
+          deduction: ev.deduction,
+        })),
       });
       onUpdate();
       onClose();
@@ -231,13 +372,23 @@ function UniversityModal({
     }
   };
 
+  const handleRecordChange = (event: string, value: string) => {
+    setPracticalRecords((prev) => ({
+      ...prev,
+      [event]: value,
+    }));
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white dark:bg-zinc-800 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white dark:bg-zinc-800 p-4 border-b dark:border-zinc-700 flex items-center justify-between">
+        <div className="sticky top-0 bg-white dark:bg-zinc-800 p-4 border-b dark:border-zinc-700 flex items-center justify-between z-10">
           <h2 className="font-bold text-lg">상세 정보</h2>
-          <button onClick={onClose} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-full">
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-full"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -256,11 +407,17 @@ function UniversityModal({
           </div>
 
           {/* Score Breakdown */}
-          <div className={`grid gap-3 ${univ.내신반영비율 > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+          <div
+            className={`grid gap-3 ${
+              univ.내신반영비율 > 0 ? "grid-cols-3" : "grid-cols-2"
+            }`}
+          >
             <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 text-center">
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">수능환산</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                수능환산
+              </p>
               <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                {sunungScore?.toFixed(1) || "-"}
+                {sunungScore ? sunungScore.toFixed(1) : "-"}
               </p>
             </div>
             {univ.내신반영비율 > 0 && (
@@ -273,7 +430,14 @@ function UniversityModal({
             )}
             <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-3 text-center">
               <p className="text-xs text-zinc-500 dark:text-zinc-400">실기</p>
-              <p className="text-lg font-bold text-purple-600 dark:text-purple-400">-</p>
+              <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                {practicalResult ? practicalResult.totalScore.toFixed(1) : "-"}
+              </p>
+              {practicalResult && practicalResult.totalDeduction > 0 && (
+                <p className="text-xs text-orange-500">
+                  (총 {practicalResult.totalDeduction}감)
+                </p>
+              )}
             </div>
           </div>
 
@@ -287,10 +451,76 @@ function UniversityModal({
             </div>
           </div>
 
+          {/* Practical Events Input */}
+          {hasPractical && (
+            <div className="space-y-3">
+              <h4 className="font-medium">실기 기록 입력</h4>
+
+              {practicalLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
+                </div>
+              ) : practicalData && practicalData.events.length > 0 ? (
+                <div className="space-y-2">
+                  {practicalData.events.map((event) => {
+                    const eventResult = practicalResult?.events.find(
+                      (e) => e.event === event
+                    );
+                    return (
+                      <div
+                        key={event}
+                        className="flex items-center gap-3 bg-zinc-50 dark:bg-zinc-700/50 rounded-xl p-3"
+                      >
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{event}</p>
+                          <input
+                            type="text"
+                            value={practicalRecords[event] || ""}
+                            onChange={(e) =>
+                              handleRecordChange(event, e.target.value)
+                            }
+                            placeholder="기록 입력"
+                            className="mt-1 w-full px-3 py-2 text-sm border rounded-lg dark:bg-zinc-600 dark:border-zinc-500"
+                          />
+                        </div>
+                        <div className="text-right min-w-[80px]">
+                          {eventResult?.score !== undefined ? (
+                            <>
+                              <p className="font-bold text-purple-600">
+                                {eventResult.score}점
+                              </p>
+                              {eventResult.deduction !== undefined &&
+                                eventResult.deduction > 0 && (
+                                  <p className="text-xs text-orange-500">
+                                    ({eventResult.deduction}감)
+                                  </p>
+                                )}
+                            </>
+                          ) : (
+                            <p className="text-zinc-400 text-sm">-</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="bg-zinc-50 dark:bg-zinc-700/50 rounded-xl p-4">
+                  <p className="text-sm text-zinc-500">{univ.실기종목}</p>
+                  <p className="text-xs text-zinc-400 mt-2">
+                    * 배점표가 없습니다
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Naesin Input */}
           {univ.내신반영비율 > 0 && (
             <div>
-              <label className="block text-sm font-medium mb-2">내신 점수 입력</label>
+              <label className="block text-sm font-medium mb-2">
+                내신 점수 입력
+              </label>
               <input
                 type="number"
                 value={naesinScore}
@@ -298,17 +528,6 @@ function UniversityModal({
                 placeholder="내신 점수를 입력하세요"
                 className="w-full px-4 py-3 border rounded-xl dark:bg-zinc-700 dark:border-zinc-600"
               />
-            </div>
-          )}
-
-          {/* Practical Events */}
-          {univ.실기종목 && (
-            <div className="bg-zinc-50 dark:bg-zinc-700/50 rounded-xl p-4">
-              <h4 className="font-medium mb-2">실기 종목</h4>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">{univ.실기종목}</p>
-              <p className="text-xs text-zinc-500 mt-2">
-                * 실기 점수는 실기관리 페이지에서 기록을 입력하세요
-              </p>
             </div>
           )}
 
@@ -328,9 +547,13 @@ function UniversityModal({
           <button
             onClick={handleSave}
             disabled={saving}
-            className="w-full py-4 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition"
+            className="w-full py-4 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition disabled:opacity-50"
           >
-            <Save className="w-5 h-5" />
+            {saving ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Save className="w-5 h-5" />
+            )}
             {saving ? "저장 중..." : "저장하기"}
           </button>
         </div>

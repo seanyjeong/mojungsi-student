@@ -474,9 +474,9 @@ export default function SearchPage() {
         })}
       </div>
 
-      {/* 초성 바 - 스크롤 시 표시, 천천히 사라짐 */}
+      {/* 초성 바 - 스크롤 시 표시, 천천히 사라짐, 하단 메뉴 위로 위치 */}
       <div
-        className={`fixed right-1 top-1/2 -translate-y-1/2 bg-white/90 dark:bg-zinc-800/90 rounded-full py-2 px-1 shadow-lg z-30 flex flex-col gap-0.5 transition-opacity duration-500 ${
+        className={`fixed right-1 top-1/3 -translate-y-1/2 bg-white/90 dark:bg-zinc-800/90 rounded-full py-2 px-1 shadow-lg z-30 flex flex-col gap-0.5 transition-opacity duration-500 ${
           showChosungBar ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
       >
