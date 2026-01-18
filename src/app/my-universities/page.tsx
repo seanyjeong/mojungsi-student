@@ -455,6 +455,11 @@ function UniversityModal({
 
   // 카카오 공유
   const handleShare = () => {
+    // U_ID에서 로고용 기본 ID 추출 (2026: 1-200, 2027: 1001-1200, 2028: 2001-2200)
+    let baseUId = saved.U_ID;
+    if (baseUId >= 2000) baseUId -= 2000;
+    else if (baseUId >= 1000) baseUId -= 1000;
+
     shareScore({
       universityName: univ.U_NM,
       departmentName: univ.D_NM,
@@ -475,6 +480,7 @@ function UniversityModal({
         naesin: univ.내신반영비율,
         practical: univ.실기반영비율,
       },
+      logoUrl: `/univlogos/${baseUId}.png`,
     });
   };
 

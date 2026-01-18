@@ -26,6 +26,7 @@ interface ShareScoreData {
     naesin: number;
     practical: number;
   };
+  logoUrl?: string; // 학교 로고 URL (예: /univlogos/177.png)
 }
 
 // 카카오 SDK 초기화
@@ -55,55 +56,63 @@ export function shareScore(data: ShareScoreData): boolean {
     initKakao();
   }
 
-  // 실기 기록 텍스트 생성
-  let practicalText = "";
-  if (data.practicalRecords && data.practicalRecords.length > 0) {
-    practicalText = data.practicalRecords
-      .map((r) => {
-        const deductionText = r.deduction && r.deduction > 0
-          ? ` (${r.deduction}감)`
-          : r.score !== undefined ? " (만점)" : "";
-        return `${r.event}: ${r.record || "-"}${deductionText}`;
-      })
-      .join("\n");
-  }
-
-  // 점수 요약 텍스트
-  const scoreLines = [];
+  // 점수 요약
+  const scoreItems = [];
   if (data.sunungScore > 0) {
-    scoreLines.push(`수능: ${data.sunungScore.toFixed(1)}점 (${data.ratios.sunung}%)`);
+    scoreItems.push(`수능 ${data.sunungScore.toFixed(1)}`);
   }
   if (data.naesinScore && data.naesinScore > 0) {
-    scoreLines.push(`내신: ${data.naesinScore.toFixed(1)}점 (${data.ratios.naesin}%)`);
+    scoreItems.push(`내신 ${data.naesinScore.toFixed(1)}`);
   }
   if (data.practicalScore && data.practicalScore > 0) {
     const deductionText = data.totalDeduction && data.totalDeduction > 0
-      ? ` (총 ${data.totalDeduction}감)`
+      ? ` (${data.totalDeduction}감)`
       : "";
-    scoreLines.push(`실기: ${data.practicalScore.toFixed(1)}점${deductionText} (${data.ratios.practical}%)`);
+    scoreItems.push(`실기 ${data.practicalScore.toFixed(1)}${deductionText}`);
   }
 
-  // 메시지 구성
-  const description = [
-    `총점: ${data.totalScore.toFixed(1)}점`,
-    "",
-    ...scoreLines,
-    "",
-    practicalText ? "[ 실기 기록 ]" : "",
-    practicalText,
-  ]
-    .filter(Boolean)
-    .join("\n");
+  // 실기 기록 요약 (한 줄)
+  let practicalSummary = "";
+  if (data.practicalRecords && data.practicalRecords.length > 0) {
+    const items = data.practicalRecords.map((r) => {
+      if (r.deduction && r.deduction > 0) return `${r.event} ${r.deduction}감`;
+      if (r.score !== undefined) return `${r.event} 만점`;
+      return null;
+    }).filter(Boolean);
+    if (items.length > 0) {
+      practicalSummary = `\n[실기] ${items.join(", ")}`;
+    }
+  }
+
+  // 설명 텍스트
+  const description = `${scoreItems.join(" / ")}${practicalSummary}`;
+
+  // 학교 로고 URL (U_ID 기반)
+  const logoUrl = data.logoUrl
+    ? `https://sjungsi.vercel.app${data.logoUrl}`
+    : "https://sjungsi.vercel.app/icon-512.png";
 
   try {
     window.Kakao.Share.sendDefault({
-      objectType: "text",
-      text: `🎓 ${data.universityName} ${data.departmentName}\n📍 ${data.region}\n\n${description}`,
-      link: {
-        mobileWebUrl: "https://sjungsi.vercel.app",
-        webUrl: "https://sjungsi.vercel.app",
+      objectType: "feed",
+      content: {
+        title: `${data.universityName} ${data.departmentName}`,
+        description: `총점 ${data.totalScore.toFixed(1)}점\n${description}`,
+        imageUrl: logoUrl,
+        link: {
+          mobileWebUrl: "https://sjungsi.vercel.app",
+          webUrl: "https://sjungsi.vercel.app",
+        },
       },
-      buttonTitle: "정시 계산기 바로가기",
+      buttons: [
+        {
+          title: "나도 계산해보기",
+          link: {
+            mobileWebUrl: "https://sjungsi.vercel.app",
+            webUrl: "https://sjungsi.vercel.app",
+          },
+        },
+      ],
     });
     return true;
   } catch (error) {
