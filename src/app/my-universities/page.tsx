@@ -483,21 +483,18 @@ function UniversityModal({
                             className="mt-1 w-full px-3 py-2 text-sm border rounded-lg dark:bg-zinc-600 dark:border-zinc-500"
                           />
                         </div>
-                        <div className="text-right min-w-[80px]">
+                        <div className="text-right min-w-[60px]">
                           {eventResult?.score !== undefined ? (
-                            <>
-                              <p className="font-bold text-purple-600">
-                                {eventResult.score}점
-                              </p>
-                              {eventResult.deduction !== undefined &&
-                                eventResult.deduction > 0 && (
-                                  <p className="text-xs text-orange-500">
-                                    ({eventResult.deduction}감)
-                                  </p>
-                                )}
-                            </>
+                            eventResult.deduction !== undefined &&
+                            eventResult.deduction > 0 ? (
+                              <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded text-sm font-medium">
+                                {eventResult.deduction}감
+                              </span>
+                            ) : (
+                              <span className="text-green-500 text-sm">만점</span>
+                            )
                           ) : (
-                            <p className="text-zinc-400 text-sm">-</p>
+                            <span className="text-zinc-400 text-sm">-</span>
                           )}
                         </div>
                       </div>
