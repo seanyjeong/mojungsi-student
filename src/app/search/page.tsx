@@ -634,23 +634,29 @@ function UniversityCard({
         </span>
       </div>
 
-      {/* Ratio Tags */}
+      {/* Ratio Tags - 항상 같은 위치에 표시 */}
       <div className="flex flex-wrap gap-2 mt-2">
-        {univ.수능반영비율 > 0 && (
-          <span className="px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded text-xs font-medium">
-            수능 {univ.수능반영비율}%
-          </span>
-        )}
-        {univ.내신반영비율 > 0 && (
-          <span className="px-2 py-1 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800 rounded text-xs font-medium">
-            내신 {univ.내신반영비율}%
-          </span>
-        )}
-        {univ.실기반영비율 > 0 && (
-          <span className="px-2 py-1 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800 rounded text-xs font-medium">
-            실기 {univ.실기반영비율}%
-          </span>
-        )}
+        <span className={`px-2 py-1 rounded text-xs font-medium ${
+          univ.수능반영비율 > 0
+            ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800"
+            : "bg-zinc-50 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 border border-zinc-200 dark:border-zinc-700"
+        }`}>
+          수능 {univ.수능반영비율}%
+        </span>
+        <span className={`px-2 py-1 rounded text-xs font-medium ${
+          univ.내신반영비율 > 0
+            ? "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800"
+            : "bg-zinc-50 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 border border-zinc-200 dark:border-zinc-700"
+        }`}>
+          내신 {univ.내신반영비율}%
+        </span>
+        <span className={`px-2 py-1 rounded text-xs font-medium ${
+          univ.실기반영비율 > 0
+            ? "bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800"
+            : "bg-zinc-50 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 border border-zinc-200 dark:border-zinc-700"
+        }`}>
+          실기 {univ.실기반영비율}%
+        </span>
       </div>
 
       {/* Practical Events */}
