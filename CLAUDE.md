@@ -1,4 +1,4 @@
-# 학생용 Web (v0.3.5)
+# 학생용 Web (v0.3.6)
 
 **배포**: `git push` → Vercel 자동
 **API**: `jungsi.sean8320.dedyn.io`

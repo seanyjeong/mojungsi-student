@@ -65,7 +65,7 @@ export default function MyPage() {
   const [scoreSaving, setScoreSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [modalProfile, setModalProfile] = useState<{ gender: string; grade: string }>({ gender: "", grade: "" });
+  const [modalProfile, setModalProfile] = useState<{ name: string; school: string; gender: string; grade: string }>({ name: "", school: "", gender: "", grade: "" });
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
 
@@ -109,6 +109,13 @@ export default function MyPage() {
 
       // 성별 또는 학년이 없으면 모달 표시
       if (!loadedProfile.gender || !loadedProfile.grade) {
+        // 카카오 닉네임을 이름 기본값으로 설정
+        setModalProfile({
+          name: loadedProfile.name || loadedProfile.nickname || "",
+          school: loadedProfile.school || "",
+          gender: loadedProfile.gender || "",
+          grade: loadedProfile.grade || "",
+        });
         setShowProfileModal(true);
       }
     } catch (err) {
@@ -166,10 +173,18 @@ export default function MyPage() {
     setSaving(true);
     try {
       await updateProfile(token, {
+        name: modalProfile.name,
+        school: modalProfile.school,
         gender: modalProfile.gender,
         grade: modalProfile.grade,
       });
-      setProfile(p => ({ ...p, gender: modalProfile.gender, grade: modalProfile.grade }));
+      setProfile(p => ({
+        ...p,
+        name: modalProfile.name,
+        school: modalProfile.school,
+        gender: modalProfile.gender,
+        grade: modalProfile.grade,
+      }));
       setShowProfileModal(false);
       setMessage("✅ 정보가 저장되었습니다!");
       setTimeout(() => setMessage(""), 3000);
@@ -368,8 +383,8 @@ export default function MyPage() {
           <div className="space-y-3">
             <InfoRow label="이름" value={profile.name} editMode={editMode}
               onChange={(v) => setProfile(p => ({ ...p, name: v }))} />
-            <InfoRow label="학교" value={profile.school} editMode={editMode}
-              onChange={(v) => setProfile(p => ({ ...p, school: v }))} />
+            <InfoRow label="학교/학원" value={profile.school} editMode={editMode}
+              onChange={(v) => setProfile(p => ({ ...p, school: v }))} placeholder="학교 또는 체대입시학원" />
 
             {/* 학년 - 선택식 */}
             <div className="flex justify-between items-center py-3 border-b border-zinc-100 dark:border-zinc-700">
@@ -548,13 +563,41 @@ export default function MyPage() {
       {/* 필수 정보 입력 모달 */}
       {showProfileModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-zinc-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+          <div className="bg-white dark:bg-zinc-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-bold mb-2">환영합니다! 👋</h3>
             <p className="text-sm text-zinc-500 mb-6">
               서비스 이용을 위해 아래 정보를 입력해주세요.
             </p>
 
             <div className="space-y-4">
+              {/* 이름 */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  이름
+                </label>
+                <input
+                  type="text"
+                  value={modalProfile.name}
+                  onChange={(e) => setModalProfile(p => ({ ...p, name: e.target.value }))}
+                  placeholder="이름을 입력하세요"
+                  className="w-full px-4 py-3 border rounded-xl text-sm bg-zinc-50 dark:bg-zinc-700 dark:border-zinc-600"
+                />
+              </div>
+
+              {/* 학교 또는 체대입시학원 */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  학교 또는 체대입시학원
+                </label>
+                <input
+                  type="text"
+                  value={modalProfile.school}
+                  onChange={(e) => setModalProfile(p => ({ ...p, school: e.target.value }))}
+                  placeholder="예: OO고등학교, OO체대입시학원"
+                  className="w-full px-4 py-3 border rounded-xl text-sm bg-zinc-50 dark:bg-zinc-700 dark:border-zinc-600"
+                />
+              </div>
+
               {/* 성별 */}
               <div>
                 <label className="block text-sm font-medium mb-2">
@@ -657,12 +700,14 @@ function InfoRow({
   editMode,
   onChange,
   type = "text",
+  placeholder,
 }: {
   label: string;
   value?: string;
   editMode: boolean;
   onChange: (v: string) => void;
   type?: string;
+  placeholder?: string;
 }) {
   return (
     <div className="flex justify-between items-center py-3 border-b border-zinc-100 dark:border-zinc-700">
@@ -672,6 +717,7 @@ function InfoRow({
           type={type}
           value={value || ""}
           onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
           className="text-sm border rounded-lg px-2 py-1 w-40 text-right dark:bg-zinc-700 dark:border-zinc-600"
         />
       ) : (
