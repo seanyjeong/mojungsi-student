@@ -212,7 +212,8 @@ export default function SearchPage() {
           const profile = await getProfile(token);
           const selectedExamType = profile.calc_exam_type || "수능";
 
-          const dbScores = await getScores(token, activeYear);
+          // 수능 점수는 시험 연도(2026) 기준으로 조회 (입시 연도와 무관)
+          const dbScores = await getScores(token, 2026);
 
           if (dbScores && dbScores.length > 0) {
             // 선택된 시험 타입의 성적 찾기
