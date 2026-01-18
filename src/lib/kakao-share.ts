@@ -56,36 +56,21 @@ export function shareScore(data: ShareScoreData): boolean {
     initKakao();
   }
 
-  // 점수 요약
-  const scoreItems = [];
-  if (data.sunungScore > 0) {
-    scoreItems.push(`수능 ${data.sunungScore.toFixed(1)}`);
-  }
+  // 점수 요약 (간결하게 - 카카오 description 글자 제한 있음)
+  const scores = [];
+  scores.push(`수능 ${data.sunungScore.toFixed(0)}`);
   if (data.naesinScore && data.naesinScore > 0) {
-    scoreItems.push(`내신 ${data.naesinScore.toFixed(1)}`);
+    scores.push(`내신 ${data.naesinScore.toFixed(0)}`);
   }
   if (data.practicalScore && data.practicalScore > 0) {
-    const deductionText = data.totalDeduction && data.totalDeduction > 0
-      ? ` (${data.totalDeduction}감)`
+    const deduction = data.totalDeduction && data.totalDeduction > 0
+      ? `(${data.totalDeduction}감)`
       : "";
-    scoreItems.push(`실기 ${data.practicalScore.toFixed(1)}${deductionText}`);
+    scores.push(`실기 ${data.practicalScore.toFixed(0)}${deduction}`);
   }
 
-  // 실기 기록 요약 (한 줄)
-  let practicalSummary = "";
-  if (data.practicalRecords && data.practicalRecords.length > 0) {
-    const items = data.practicalRecords.map((r) => {
-      if (r.deduction && r.deduction > 0) return `${r.event} ${r.deduction}감`;
-      if (r.score !== undefined) return `${r.event} 만점`;
-      return null;
-    }).filter(Boolean);
-    if (items.length > 0) {
-      practicalSummary = `\n[실기] ${items.join(", ")}`;
-    }
-  }
-
-  // 설명 텍스트
-  const description = `${scoreItems.join(" / ")}${practicalSummary}`;
+  // 설명: 총점 + 점수 요약만 (간결하게)
+  const description = `총점 ${data.totalScore.toFixed(1)}점\n${scores.join(" / ")}`;
 
   // 학교 로고 URL (U_ID 기반)
   const logoUrl = data.logoUrl
@@ -97,7 +82,7 @@ export function shareScore(data: ShareScoreData): boolean {
       objectType: "feed",
       content: {
         title: `${data.universityName} ${data.departmentName}`,
-        description: `총점 ${data.totalScore.toFixed(1)}점\n${description}`,
+        description: description,
         imageUrl: logoUrl,
         link: {
           mobileWebUrl: "https://sjungsi.vercel.app",
