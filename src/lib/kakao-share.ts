@@ -75,8 +75,8 @@ export function shareScore(data: ShareScoreData): boolean {
   if (data.practicalRecords && data.practicalRecords.length > 0) {
     const lines = data.practicalRecords.map((r) => {
       const deductionText = r.deduction && r.deduction > 0
-        ? `${r.deduction}감`
-        : (r.score !== undefined ? "만점" : "");
+        ? `(${r.deduction}감)`
+        : (r.score !== undefined ? "(만점)" : "");
       return `${r.event} ${r.record} ${deductionText}`.trim();
     }).filter(Boolean);
     if (lines.length > 0) {
