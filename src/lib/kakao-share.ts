@@ -56,7 +56,7 @@ export function shareScore(data: ShareScoreData): boolean {
     initKakao();
   }
 
-  // 점수 요약 (간결하게 - 카카오 description 글자 제한 있음)
+  // 점수 요약
   const scores = [];
   scores.push(`수능 ${data.sunungScore.toFixed(0)}`);
   if (data.naesinScore && data.naesinScore > 0) {
@@ -69,8 +69,21 @@ export function shareScore(data: ShareScoreData): boolean {
     scores.push(`실기 ${data.practicalScore.toFixed(0)}${deduction}`);
   }
 
-  // 설명: 총점 + 점수 요약만 (간결하게)
-  const description = `총점 ${data.totalScore.toFixed(1)}점\n${scores.join(" / ")}`;
+  // 실기 종목별 기록
+  let practicalSummary = "";
+  if (data.practicalRecords && data.practicalRecords.length > 0) {
+    const items = data.practicalRecords.map((r) => {
+      if (r.deduction && r.deduction > 0) return `${r.event} ${r.deduction}감`;
+      if (r.score !== undefined) return `${r.event} 만점`;
+      return null;
+    }).filter(Boolean);
+    if (items.length > 0) {
+      practicalSummary = `\n${items.join(", ")}`;
+    }
+  }
+
+  // 설명: 총점 + 점수 + 실기 종목
+  const description = `총점 ${data.totalScore.toFixed(1)}점\n${scores.join(" / ")}${practicalSummary}`;
 
   // 학교 로고 URL (200x200으로 리사이즈됨)
   const imageUrl = data.logoUrl
