@@ -45,7 +45,7 @@ export function initKakao() {
   }
 }
 
-// 점수 공유
+// 점수 공유 (텍스트형 - 글자수 제한 적음, 링크 클릭 가능)
 export function shareScore(data: ShareScoreData): boolean {
   if (typeof window === "undefined" || !window.Kakao) {
     alert("카카오 SDK를 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
@@ -82,35 +82,23 @@ export function shareScore(data: ShareScoreData): boolean {
     }
   }
 
-  // 설명: 총점 + 점수 + 실기 종목
-  const description = `총점 ${data.totalScore.toFixed(1)}점\n${scores.join(" / ")}${practicalSummary}`;
+  // 텍스트 메시지 구성
+  const text = `[정시계산기]
 
-  // 학교 로고 URL (200x200으로 리사이즈됨)
-  const imageUrl = data.logoUrl
-    ? `https://sjungsi.vercel.app${data.logoUrl}`
-    : "https://sjungsi.vercel.app/univlogos/1.png";
+${data.universityName} ${data.departmentName}
+총점 ${data.totalScore.toFixed(1)}점
+
+${scores.join(" / ")}${practicalSummary}`;
 
   try {
     window.Kakao.Share.sendDefault({
-      objectType: "feed",
-      content: {
-        title: `${data.universityName} ${data.departmentName}`,
-        description: description,
-        imageUrl: imageUrl,
-        link: {
-          mobileWebUrl: "https://sjungsi.vercel.app",
-          webUrl: "https://sjungsi.vercel.app",
-        },
+      objectType: "text",
+      text: text,
+      link: {
+        mobileWebUrl: "https://sjungsi.vercel.app",
+        webUrl: "https://sjungsi.vercel.app",
       },
-      buttons: [
-        {
-          title: "나도 계산해보기",
-          link: {
-            mobileWebUrl: "https://sjungsi.vercel.app",
-            webUrl: "https://sjungsi.vercel.app",
-          },
-        },
-      ],
+      buttonTitle: "나도 계산해보기",
     });
     return true;
   } catch (error) {
