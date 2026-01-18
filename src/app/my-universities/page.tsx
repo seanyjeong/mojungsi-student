@@ -50,6 +50,9 @@ interface PracticalScoreData {
   specialConfig: any;
 }
 
+const TABS = ["가군", "나군", "다군"] as const;
+type TabType = (typeof TABS)[number];
+
 export default function MyUniversitiesPage() {
   const router = useRouter();
   const { isLoggedIn, isLoading } = useAuth();
@@ -60,6 +63,7 @@ export default function MyUniversitiesPage() {
     null
   );
   const [userGender, setUserGender] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<TabType>("가군");
 
   useEffect(() => {
     if (!isLoading && !isLoggedIn) {
@@ -114,6 +118,32 @@ export default function MyUniversitiesPage() {
     }
   };
 
+  // 탭별 대학 필터링
+  const filteredByTab = useMemo(() => {
+    return saved.filter((s) => s.university.모집군 === activeTab);
+  }, [saved, activeTab]);
+
+  // 탭별 개수
+  const tabCounts = useMemo(() => {
+    const counts: Record<TabType, number> = { 가군: 0, 나군: 0, 다군: 0 };
+    saved.forEach((s) => {
+      const gun = s.university.모집군 as TabType;
+      if (counts[gun] !== undefined) {
+        counts[gun]++;
+      }
+    });
+    return counts;
+  }, [saved]);
+
+  // 총점 계산 헬퍼
+  const calcTotalScore = (s: SavedUniversity) => {
+    let total = 0;
+    if (s.sunung_score) total += Number(s.sunung_score);
+    if (s.naesin_score) total += Number(s.naesin_score);
+    if (s.practical_score) total += Number(s.practical_score);
+    return total;
+  };
+
   if (isLoading || loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
@@ -138,8 +168,36 @@ export default function MyUniversitiesPage() {
 
   return (
     <div className="space-y-4 pb-20">
-      <h1 className="text-xl font-bold">내 저장 대학</h1>
-      <p className="text-sm text-zinc-500">저장된 대학: {saved.length}개</p>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold">내 저장 대학</h1>
+        <p className="text-sm text-zinc-500">총 {saved.length}개</p>
+      </div>
+
+      {/* 모집군 탭 */}
+      <div className="flex gap-2">
+        {TABS.map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`flex-1 py-3 rounded-xl font-medium transition ${
+              activeTab === tab
+                ? "bg-blue-500 text-white"
+                : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
+            }`}
+          >
+            {tab}
+            {tabCounts[tab] > 0 && (
+              <span
+                className={`ml-1 text-xs ${
+                  activeTab === tab ? "opacity-80" : "opacity-60"
+                }`}
+              >
+                ({tabCounts[tab]})
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
 
       {saved.length === 0 ? (
         <div className="text-center py-10 text-zinc-500">
@@ -147,74 +205,90 @@ export default function MyUniversitiesPage() {
           <p>저장된 대학이 없습니다</p>
           <p className="text-sm mt-1">대학검색에서 하트를 눌러 저장하세요</p>
         </div>
+      ) : filteredByTab.length === 0 ? (
+        <div className="text-center py-10 text-zinc-500">
+          <p>{activeTab}에 저장된 대학이 없습니다</p>
+        </div>
       ) : (
         <div className="space-y-3">
-          {saved.map((s) => (
-            <div
-              key={s.id}
-              onClick={() => setSelectedUniv(s)}
-              className="bg-white dark:bg-zinc-800 rounded-xl p-4 shadow-sm cursor-pointer hover:shadow-md transition relative"
-            >
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRemove(s.U_ID);
-                }}
-                className="absolute top-4 right-4 p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition"
-              >
-                <Heart className="w-5 h-5 fill-current" />
-              </button>
+          {filteredByTab.map((s) => {
+            const totalScore = calcTotalScore(s);
+            const hasNaesin = s.university.내신반영비율 > 0;
 
-              <div className="pr-10">
-                <h3 className="font-bold">{s.university.U_NM}</h3>
-                <p className="text-sm text-zinc-500">{s.university.D_NM}</p>
-              </div>
-
-              <div className="flex flex-wrap gap-2 mt-2">
-                <span className="inline-flex items-center gap-1 px-2 py-1 bg-zinc-100 dark:bg-zinc-700 rounded text-xs">
-                  <MapPin className="w-3 h-3" /> {s.university.지역}
-                </span>
-                <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded text-xs font-medium">
-                  {s.university.모집군}
-                </span>
-              </div>
-
-              {s.university.실기종목 && (
-                <p className="text-xs text-zinc-500 mt-2">
-                  실기: {s.university.실기종목}
-                </p>
-              )}
-
+            return (
               <div
-                className={`mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-700 grid gap-2 text-center ${
-                  s.university.내신반영비율 > 0 ? "grid-cols-3" : "grid-cols-2"
-                }`}
+                key={s.id}
+                onClick={() => setSelectedUniv(s)}
+                className="bg-white dark:bg-zinc-800 rounded-xl p-4 shadow-sm cursor-pointer hover:shadow-md transition relative"
               >
-                <div>
-                  <p className="text-xs text-zinc-500">수능환산</p>
-                  <p className="font-bold text-blue-600">
-                    {s.sunung_score ? Number(s.sunung_score).toFixed(1) : "-"}
-                  </p>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemove(s.U_ID);
+                  }}
+                  className="absolute top-4 right-4 p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition"
+                >
+                  <Heart className="w-5 h-5 fill-current" />
+                </button>
+
+                {/* 대학 정보 */}
+                <div className="pr-10">
+                  <h3 className="font-bold">{s.university.U_NM}</h3>
+                  <p className="text-sm text-zinc-500">{s.university.D_NM}</p>
                 </div>
-                {s.university.내신반영비율 > 0 && (
-                  <div>
-                    <p className="text-xs text-zinc-500">내신</p>
-                    <p className="font-bold text-green-600">
-                      {s.naesin_score?.toFixed(1) || "-"}
+
+                {/* 지역 태그 */}
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-zinc-100 dark:bg-zinc-700 rounded text-xs">
+                    <MapPin className="w-3 h-3" /> {s.university.지역}
+                  </span>
+                </div>
+
+                {/* 점수 영역 */}
+                <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-700">
+                  {/* 총점 크게 */}
+                  <div className="text-center mb-2">
+                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                      {totalScore > 0 ? totalScore.toFixed(1) : "-"}
+                      <span className="text-sm font-normal text-zinc-500 ml-1">
+                        점
+                      </span>
                     </p>
                   </div>
-                )}
-                <div>
-                  <p className="text-xs text-zinc-500">실기</p>
-                  <p className="font-bold text-purple-600">
-                    {s.practical_score
-                      ? Number(s.practical_score).toFixed(1)
-                      : "-"}
-                  </p>
+
+                  {/* 세부 점수 작게 */}
+                  <div className="flex justify-center gap-4 text-xs text-zinc-500">
+                    <span>
+                      수능{" "}
+                      <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                        {s.sunung_score
+                          ? Number(s.sunung_score).toFixed(1)
+                          : "-"}
+                      </span>
+                    </span>
+                    {hasNaesin && (
+                      <span>
+                        내신{" "}
+                        <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                          {s.naesin_score
+                            ? Number(s.naesin_score).toFixed(1)
+                            : "-"}
+                        </span>
+                      </span>
+                    )}
+                    <span>
+                      실기{" "}
+                      <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                        {s.practical_score
+                          ? Number(s.practical_score).toFixed(1)
+                          : "-"}
+                      </span>
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -248,9 +322,8 @@ function UniversityModal({
   const [saving, setSaving] = useState(false);
 
   // 실기 관련 상태
-  const [practicalData, setPracticalData] = useState<PracticalScoreData | null>(
-    null
-  );
+  const [practicalData, setPracticalData] =
+    useState<PracticalScoreData | null>(null);
   const [practicalLoading, setPracticalLoading] = useState(false);
   const [practicalRecords, setPracticalRecords] = useState<
     Record<string, string>
@@ -350,7 +423,8 @@ function UniversityModal({
     if (!token) return;
     setSaving(true);
     try {
-      const practicalRecordsList: EventRecord[] = practicalResult?.events || [];
+      const practicalRecordsList: EventRecord[] =
+        practicalResult?.events || [];
 
       await updateSavedUniversity(token, saved.U_ID, {
         naesin_score: naesinScore ? parseFloat(naesinScore) : undefined,
@@ -491,7 +565,9 @@ function UniversityModal({
                                 {eventResult.deduction}감
                               </span>
                             ) : (
-                              <span className="text-green-500 text-sm">만점</span>
+                              <span className="text-green-500 text-sm">
+                                만점
+                              </span>
                             )
                           ) : (
                             <span className="text-zinc-400 text-sm">-</span>
