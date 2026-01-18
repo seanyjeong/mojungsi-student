@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { BottomNav } from "@/components/bottom-nav";
 import { Header } from "@/components/header";
@@ -34,6 +35,12 @@ export default function RootLayout({
           <main className="max-w-2xl mx-auto px-4 py-6">{children}</main>
         </div>
         <BottomNav />
+        <Script
+          src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"
+          integrity="sha384-TiCUE00h649CAMonG018J2ujOgDKW/kVWlChEuu4jK2vxfAAD0eZxzCKakxg55G4"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );

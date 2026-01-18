@@ -17,7 +17,8 @@ import {
   ScoreRow,
   EventRecord,
 } from "@/lib/practical-calc";
-import { Heart, MapPin, X, Save, Loader2 } from "lucide-react";
+import { Heart, MapPin, X, Save, Loader2, Share2 } from "lucide-react";
+import { shareScore, initKakao } from "@/lib/kakao-share";
 
 interface SavedUniversity {
   id: number;
@@ -332,6 +333,11 @@ function UniversityModal({
   const hasPractical =
     univ.실기반영비율 > 0 && univ.실기종목 && univ.실기종목.length > 0;
 
+  // 카카오 SDK 초기화
+  useEffect(() => {
+    initKakao();
+  }, []);
+
   // 배점표 로드
   useEffect(() => {
     const loadData = async () => {
@@ -445,6 +451,31 @@ function UniversityModal({
       ...prev,
       [event]: value,
     }));
+  };
+
+  // 카카오 공유
+  const handleShare = () => {
+    shareScore({
+      universityName: univ.U_NM,
+      departmentName: univ.D_NM,
+      region: univ.지역,
+      totalScore,
+      sunungScore,
+      naesinScore: naesinScore ? parseFloat(naesinScore) : undefined,
+      practicalScore: practicalResult?.totalScore,
+      practicalRecords: practicalResult?.events.map((e) => ({
+        event: e.event,
+        record: e.record,
+        score: e.score,
+        deduction: e.deduction,
+      })),
+      totalDeduction: practicalResult?.totalDeduction,
+      ratios: {
+        sunung: univ.수능반영비율,
+        naesin: univ.내신반영비율,
+        practical: univ.실기반영비율,
+      },
+    });
   };
 
   return (
@@ -622,19 +653,28 @@ function UniversityModal({
             />
           </div>
 
-          {/* Save Button */}
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="w-full py-4 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition disabled:opacity-50"
-          >
-            {saving ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Save className="w-5 h-5" />
-            )}
-            {saving ? "저장 중..." : "저장하기"}
-          </button>
+          {/* Buttons */}
+          <div className="flex gap-3">
+            <button
+              onClick={handleShare}
+              className="flex-1 py-4 bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-semibold rounded-xl flex items-center justify-center gap-2 transition"
+            >
+              <Share2 className="w-5 h-5" />
+              카카오 공유
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex-1 py-4 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition disabled:opacity-50"
+            >
+              {saving ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Save className="w-5 h-5" />
+              )}
+              {saving ? "저장 중..." : "저장하기"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -466,3 +466,64 @@ export async function withdrawUser(token: string) {
   if (!response.ok) throw new Error("Failed to withdraw");
   return response.json();
 }
+
+// ========== Notices API ==========
+
+export interface Notice {
+  id: number;
+  title: string;
+  content: string;
+  type: "general" | "urgent" | "event";
+  published_at: string | null;
+  created_at: string;
+  isRead?: boolean;
+}
+
+// 최신 공지 3개 (로그인 선택)
+export async function getLatestNotices(token?: string): Promise<Notice[]> {
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  const response = await fetch(`${API_BASE_URL}/saas/notices/latest`, { headers });
+  if (!response.ok) return [];
+  return response.json();
+}
+
+// 전체 공지 목록 (로그인 선택)
+export async function getNotices(token?: string): Promise<Notice[]> {
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  const response = await fetch(`${API_BASE_URL}/saas/notices`, { headers });
+  if (!response.ok) return [];
+  return response.json();
+}
+
+// 공지 상세 + 읽음 표시 (🔒)
+export async function getNotice(token: string, id: number): Promise<Notice | null> {
+  const response = await fetch(`${API_BASE_URL}/saas/notices/${id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) return null;
+  return response.json();
+}
+
+// 읽음 처리 (🔒)
+export async function markNoticeAsRead(token: string, id: number): Promise<void> {
+  await fetch(`${API_BASE_URL}/saas/notices/${id}/read`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+// 안읽은 공지 수 (🔒)
+export async function getUnreadNoticeCount(token: string): Promise<number> {
+  const response = await fetch(`${API_BASE_URL}/saas/notices/unread-count`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) return 0;
+  const data = await response.json();
+  return data.count || 0;
+}

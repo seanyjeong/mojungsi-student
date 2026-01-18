@@ -3,14 +3,22 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, getToken } from "@/lib/auth";
-import { getScores, getActiveYear } from "@/lib/api";
-import { Search, Heart, Dumbbell, User } from "lucide-react";
+import { getScores, getActiveYear, getLatestNotices, markNoticeAsRead, Notice } from "@/lib/api";
+import { Search, Heart, Dumbbell, User, Bell, X, AlertTriangle, Sparkles } from "lucide-react";
 import Link from "next/link";
+
+const typeStyles = {
+  general: { bg: "bg-gray-100", text: "text-gray-700", label: "일반", icon: Bell },
+  urgent: { bg: "bg-red-100", text: "text-red-700", label: "긴급", icon: AlertTriangle },
+  event: { bg: "bg-purple-100", text: "text-purple-700", label: "이벤트", icon: Sparkles },
+};
 
 export default function HomePage() {
   const router = useRouter();
   const { isLoggedIn, isLoading } = useAuth();
   const [hasScores, setHasScores] = useState(false);
+  const [notices, setNotices] = useState<Notice[]>([]);
+  const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
 
   useEffect(() => {
     const checkScores = async () => {
@@ -20,8 +28,7 @@ export default function HomePage() {
         return;
       }
       try {
-        const activeYear = await getActiveYear();
-        const scores = await getScores(token, activeYear);
+        const scores = await getScores(token);
         setHasScores(!!(scores && scores.length > 0 && scores.some((s: any) => s.scores)));
       } catch {
         setHasScores(false);
@@ -29,6 +36,28 @@ export default function HomePage() {
     };
     checkScores();
   }, [isLoggedIn]);
+
+  // 공지사항 조회
+  useEffect(() => {
+    const fetchNotices = async () => {
+      const token = getToken();
+      const data = await getLatestNotices(token || undefined);
+      setNotices(data);
+    };
+    fetchNotices();
+  }, [isLoggedIn]);
+
+  // 공지 클릭 시
+  const handleNoticeClick = async (notice: Notice) => {
+    setSelectedNotice(notice);
+    const token = getToken();
+    if (token && !notice.isRead) {
+      await markNoticeAsRead(token, notice.id);
+      setNotices((prev) =>
+        prev.map((n) => (n.id === notice.id ? { ...n, isRead: true } : n))
+      );
+    }
+  };
 
   const menuItems = [
     {
@@ -113,6 +142,51 @@ export default function HomePage() {
         })}
       </div>
 
+      {/* Notices Section */}
+      {notices.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Bell className="w-4 h-4 text-zinc-500" />
+            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">공지사항</span>
+          </div>
+          {notices.map((notice) => {
+            const style = typeStyles[notice.type];
+            const Icon = style.icon;
+            return (
+              <button
+                key={notice.id}
+                onClick={() => handleNoticeClick(notice)}
+                className="w-full text-left bg-white dark:bg-zinc-800 rounded-xl p-4 shadow-sm hover:shadow-md transition"
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`p-2 rounded-lg ${style.bg}`}>
+                    <Icon className={`w-4 h-4 ${style.text}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`px-1.5 py-0.5 text-xs font-medium rounded ${style.bg} ${style.text}`}>
+                        {style.label}
+                      </span>
+                      {!notice.isRead && isLoggedIn && (
+                        <span className="px-1.5 py-0.5 text-xs font-medium rounded bg-blue-500 text-white">
+                          NEW
+                        </span>
+                      )}
+                    </div>
+                    <h4 className="font-medium text-zinc-900 dark:text-white truncate">
+                      {notice.title}
+                    </h4>
+                    <p className="text-xs text-zinc-500 mt-1 line-clamp-2">
+                      {notice.content}
+                    </p>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Quick Info */}
       <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-4 text-sm text-zinc-600 dark:text-zinc-400">
         <p className="font-medium mb-2">이용 안내</p>
@@ -122,6 +196,38 @@ export default function HomePage() {
           <li>• 관심 대학은 하트를 눌러 저장하세요</li>
         </ul>
       </div>
+
+      {/* Notice Modal */}
+      {selectedNotice && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-800 rounded-xl w-full max-w-md max-h-[80vh] overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-zinc-200 dark:border-zinc-700">
+              <div className="flex items-center gap-2">
+                <span className={`px-2 py-0.5 text-xs font-medium rounded ${typeStyles[selectedNotice.type].bg} ${typeStyles[selectedNotice.type].text}`}>
+                  {typeStyles[selectedNotice.type].label}
+                </span>
+                <span className="text-xs text-zinc-400">
+                  {new Date(selectedNotice.created_at).toLocaleDateString("ko-KR")}
+                </span>
+              </div>
+              <button
+                onClick={() => setSelectedNotice(null)}
+                className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4">
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-white mb-3">
+                {selectedNotice.title}
+              </h3>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap">
+                {selectedNotice.content}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

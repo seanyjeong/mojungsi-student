@@ -1,4 +1,9 @@
-# 학생용 Web (v0.4.14)
+# 학생용 Web (v0.4.15)
+
+> **전체 프로젝트 명세**: `../docs/` 참조
+> - `../docs/API.md` - 백엔드 API
+> - `../docs/DATABASE.md` - DB 스키마
+> - `../docs/FRONTEND.md` - 프론트엔드
 
 **배포**: `git push` → Vercel 자동
 **API**: `jungsi.sean8320.dedyn.io`
@@ -32,7 +37,7 @@ profile.grade에 따라 입시연도 결정:
 ```
 **파일**: `search/page.tsx`
 
-### 성적 저장 (v0.4.14 간소화)
+### 성적 저장 (v0.4.15 간소화)
 ```
 saas_saved_scores 테이블:
 - user_id: 사용자
@@ -162,7 +167,7 @@ Next.js 15 / TypeScript / Tailwind / Radix UI / lucide-react / @nivo/line
 
 ## 변경 이력
 
-### v0.4.14 (2026-01-18)
+### v0.4.15 (2026-01-18)
 - 성적 연도 의존성 제거 (year 컬럼 미사용)
 - 입시연도는 학년으로만 결정
 

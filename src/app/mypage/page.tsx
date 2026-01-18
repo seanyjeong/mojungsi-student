@@ -126,8 +126,7 @@ export default function MyPage() {
     const token = getToken();
     if (!token) return;
     try {
-      const activeYear = await getActiveYear();
-      const data = await getScores(token, activeYear);
+      const data = await getScores(token);
       const map: Record<string, ScoreData> = {};
       data.forEach((s: any) => {
         map[s.exam_type] = s.scores || {};
