@@ -61,17 +61,16 @@ export function shareScore(data: ShareScoreData): boolean {
 
   // 점수 한 줄 요약
   const scoreParts = [];
-  scoreParts.push(`수능 ${formatScore(data.sunungScore)}`);
+  scoreParts.push(`수능 ${formatScore(data.sunungScore)}점`);
   if (data.naesinScore && data.naesinScore > 0) {
-    scoreParts.push(`내신 ${formatScore(data.naesinScore)}`);
+    scoreParts.push(`내신 ${formatScore(data.naesinScore)}점`);
   }
   if (data.practicalScore && data.practicalScore > 0) {
     const totalDeduction = data.totalDeduction && data.totalDeduction > 0
       ? `(${data.totalDeduction}감)`
       : "";
-    scoreParts.push(`실기 ${formatScore(data.practicalScore)}${totalDeduction}`);
+    scoreParts.push(`실기 ${formatScore(data.practicalScore)}점${totalDeduction}`);
   }
-  scoreParts.push(`총점 ${formatScore(data.totalScore)}`);
 
   // 실기 종목별 기록 (각 종목 한 줄씩)
   let practicalLines = "";
@@ -93,6 +92,7 @@ export function shareScore(data: ShareScoreData): boolean {
 ${data.universityName}
 ${data.departmentName}
 
+✓ 총점 ${formatScore(data.totalScore)}점
 ${scoreParts.join(" · ")}${practicalLines}`;
 
   try {
