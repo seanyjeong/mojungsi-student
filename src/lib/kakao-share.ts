@@ -72,8 +72,10 @@ export function shareScore(data: ShareScoreData): boolean {
   // 설명: 총점 + 점수 요약만 (간결하게)
   const description = `총점 ${data.totalScore.toFixed(1)}점\n${scores.join(" / ")}`;
 
-  // 앱 기본 아이콘 사용 (로고 이미지가 200x200 미만이라 카카오 요구사항 미충족)
-  const imageUrl = "https://sjungsi.vercel.app/icon-512.png";
+  // 학교 로고 URL (200x200으로 리사이즈됨)
+  const imageUrl = data.logoUrl
+    ? `https://sjungsi.vercel.app${data.logoUrl}`
+    : "https://sjungsi.vercel.app/univlogos/1.png";
 
   try {
     window.Kakao.Share.sendDefault({
