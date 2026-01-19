@@ -1,4 +1,4 @@
-# 학생용 Web (v0.4.23)
+# 학생용 Web (v0.4.24)
 
 > **전체 프로젝트 명세**: `../docs/` 참조
 > - `../docs/API.md` - 백엔드 API
@@ -193,6 +193,13 @@ Next.js 15 / TypeScript / Tailwind / Radix UI / lucide-react / @nivo/line
 ---
 
 ## 변경 이력
+
+### v0.4.24 (2026-01-19)
+- **배점표 조회 모달 추가**
+  - 저장대학 카드에 "배점표" 버튼 추가 (실기 있는 대학만)
+  - `ScoreTableModal.tsx` 컴포넌트 신규 생성
+  - 종목 드롭다운으로 전환, 기록+단위/배점 테이블 표시
+  - 기존 `getPracticalScoreTable` API 활용
 
 ### v0.4.23 (2026-01-19)
 - **카카오 공유에 실기 단위 표시**

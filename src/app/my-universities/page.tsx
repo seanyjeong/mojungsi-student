@@ -17,8 +17,9 @@ import {
   ScoreRow,
   EventRecord,
 } from "@/lib/practical-calc";
-import { Heart, MapPin, X, Save, Loader2, Share2 } from "lucide-react";
+import { Heart, MapPin, X, Save, Loader2, Share2, TableProperties } from "lucide-react";
 import { shareScore, initKakao } from "@/lib/kakao-share";
+import ScoreTableModal from "@/components/ScoreTableModal";
 
 interface SavedUniversity {
   id: number;
@@ -63,6 +64,9 @@ export default function MyUniversitiesPage() {
   const [saved, setSaved] = useState<SavedUniversity[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUniv, setSelectedUniv] = useState<SavedUniversity | null>(
+    null
+  );
+  const [selectedUnivForTable, setSelectedUnivForTable] = useState<SavedUniversity | null>(
     null
   );
   const [userGender, setUserGender] = useState<string>("");
@@ -240,11 +244,22 @@ export default function MyUniversitiesPage() {
                   <p className="text-sm text-zinc-500">{s.university.D_NM}</p>
                 </div>
 
-                {/* 지역 태그 */}
+                {/* 지역 태그 + 배점표 버튼 */}
                 <div className="flex items-center gap-2 mt-2">
                   <span className="inline-flex items-center gap-1 px-2 py-1 bg-zinc-100 dark:bg-zinc-700 rounded text-xs">
                     <MapPin className="w-3 h-3" /> {s.university.지역}
                   </span>
+                  {s.university.실기반영비율 > 0 && s.university.실기종목 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedUnivForTable(s);
+                      }}
+                      className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded text-xs hover:bg-purple-200 dark:hover:bg-purple-900/50 transition"
+                    >
+                      <TableProperties className="w-3 h-3" /> 배점표
+                    </button>
+                  )}
                 </div>
 
                 {/* 점수 영역 - 한 줄 */}
@@ -293,6 +308,16 @@ export default function MyUniversitiesPage() {
           userGender={userGender}
           onClose={() => setSelectedUniv(null)}
           onUpdate={loadSaved}
+        />
+      )}
+
+      {selectedUnivForTable && (
+        <ScoreTableModal
+          U_ID={selectedUnivForTable.U_ID}
+          universityName={selectedUnivForTable.university.U_NM}
+          departmentName={selectedUnivForTable.university.D_NM}
+          gender={userGender}
+          onClose={() => setSelectedUnivForTable(null)}
         />
       )}
     </div>
