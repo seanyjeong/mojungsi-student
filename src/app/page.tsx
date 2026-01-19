@@ -189,11 +189,19 @@ export default function HomePage() {
 
       {/* Quick Info */}
       <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-4 text-sm text-zinc-600 dark:text-zinc-400">
-        <p className="font-medium mb-2">이용 안내</p>
-        <ul className="space-y-1 text-xs">
-          <li>• 내 정보에서 모의고사/수능 성적을 입력하세요</li>
-          <li>• 대학 검색에서 환산점수를 확인하세요</li>
-          <li>• 관심 대학은 하트를 눌러 저장하세요</li>
+        <p className="font-medium mb-2">📋 이용 안내</p>
+        <ul className="space-y-1.5 text-xs">
+          <li><span className="font-medium text-blue-600">1.</span> 내 정보에서 모의고사/수능 성적을 입력하세요</li>
+          <li><span className="font-medium text-blue-600">2.</span> 대학 검색에서 환산점수를 확인하세요</li>
+          <li><span className="font-medium text-blue-600">3.</span> 관심 대학은 하트를 눌러 저장하세요</li>
+        </ul>
+
+        <p className="font-medium mt-4 mb-2">🏃 실기 관리 사용법</p>
+        <ul className="space-y-1.5 text-xs">
+          <li><span className="font-medium text-purple-600">1.</span> 실기관리 → <span className="font-medium">종목 설정</span> 탭에서 관리할 종목 추가</li>
+          <li><span className="font-medium text-purple-600">2.</span> <span className="font-medium">기록 관리</span> 탭에서 날짜별 기록 입력</li>
+          <li><span className="font-medium text-purple-600">3.</span> <span className="font-medium">성장 그래프</span>에서 실력 변화 확인</li>
+          <li><span className="font-medium text-purple-600">4.</span> 저장대학에서 실기점수 자동 계산!</li>
         </ul>
       </div>
 
