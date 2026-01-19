@@ -1,0 +1,639 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model branches {
+  branch_id   Int       @id @default(autoincrement())
+  branch_name String    @unique(map: "branch_name") @db.VarChar(50)
+  created_at  DateTime? @default(now()) @db.Timestamp(0)
+  users       users[]
+}
+
+model calculation_templates {
+  template_id      Int                                @id @default(autoincrement())
+  name             String                             @unique(map: "name") @db.VarChar(100)
+  display_name     String                             @db.VarChar(100)
+  description      String?                            @db.Text
+  pattern_type     calculation_templates_pattern_type
+  param_schema     Json
+  formula_template String?                            @db.Text
+  example_config   Json?
+  help_text        String?                            @db.Text
+  is_active        Boolean?                           @default(true)
+  sort_order       Int?                               @default(0)
+  created_at       DateTime?                          @default(now()) @db.Timestamp(0)
+  formula_configs  formula_configs[]
+}
+
+model change_logs {
+  log_id     Int                @id @default(autoincrement())
+  table_name String             @db.VarChar(50)
+  record_id  Int
+  action     change_logs_action
+  old_values Json?
+  new_values Json?
+  changed_by String?            @db.VarChar(50)
+  changed_at DateTime?          @default(now()) @db.Timestamp(0)
+
+  @@index([changed_at], map: "idx_changed_at")
+  @@index([table_name, record_id], map: "idx_table_record")
+}
+
+model counseling_wishlist {
+  id                Int         @id @default(autoincrement())
+  student_id        Int
+  dept_id           Int
+  recruit_group     String?     @map("모집군") @db.VarChar(10)
+  counsel_suneung   Decimal?    @map("상담_수능점수") @db.Decimal(8, 2)
+  counsel_practical Decimal?    @map("상담_실기점수") @db.Decimal(8, 2)
+  counsel_total     Decimal?    @map("상담_총점") @db.Decimal(8, 2)
+  memo              String?     @db.Text
+  created_at        DateTime?   @default(now()) @db.Timestamp(0)
+  updated_at        DateTime?   @default(now()) @db.Timestamp(0)
+  students          students    @relation(fields: [student_id], references: [student_id], onDelete: Cascade, onUpdate: NoAction, map: "counseling_wishlist_ibfk_1")
+  departments       departments @relation(fields: [dept_id], references: [dept_id], onDelete: Cascade, onUpdate: NoAction, map: "counseling_wishlist_ibfk_2")
+
+  @@unique([student_id, dept_id, recruit_group], map: "uk_student_dept_gun")
+  @@index([dept_id], map: "idx_dept")
+  @@index([student_id], map: "idx_student")
+}
+
+model debug_notes {
+  id          Int         @id @default(autoincrement())
+  dept_id     Int         @unique(map: "uk_dept")
+  is_correct  Boolean?    @default(false)
+  memo        String?     @db.Text
+  updated_at  DateTime?   @default(now()) @db.Timestamp(0)
+  departments departments @relation(fields: [dept_id], references: [dept_id], onDelete: Cascade, onUpdate: NoAction, map: "debug_notes_ibfk_1")
+}
+
+model departments {
+  dept_id                Int                      @id @default(autoincrement())
+  univ_id                Int
+  year_id                Int
+  dept_name              String                   @db.VarChar(100)
+  recruit_group          String?                  @map("모집군") @db.VarChar(10)
+  recruit_count          Int?                     @default(0) @map("모집인원")
+  type                   String?                  @map("형태") @db.VarChar(50)
+  teacher_cert           String?                  @map("교직") @db.VarChar(50)
+  step_type              String?                  @map("단계별") @db.VarChar(50)
+  created_at             DateTime?                @default(now()) @db.Timestamp(0)
+  updated_at             DateTime?                @default(now()) @db.Timestamp(0)
+  counseling_wishlist    counseling_wishlist[]
+  debug_notes            debug_notes?
+  universities           universities             @relation(fields: [univ_id], references: [univ_id], onDelete: Cascade, onUpdate: NoAction, map: "departments_ibfk_1")
+  year_configs           year_configs             @relation(fields: [year_id], references: [year_id], onDelete: Cascade, onUpdate: NoAction, map: "departments_ibfk_2")
+  english_grade_tables   english_grade_tables[]
+  formula_configs        formula_configs?
+  history_grade_tables   history_grade_tables[]
+  inquiry_conv_tables    inquiry_conv_tables[]
+  practical_calc_rules   practical_calc_rules?
+  practical_score_tables practical_score_tables[]
+
+  @@unique([univ_id, year_id, dept_name, recruit_group], map: "uk_dept_year")
+  @@index([recruit_group], map: "idx_gun")
+  @@index([year_id], map: "idx_year")
+}
+
+model english_grade_tables {
+  id          Int         @id @default(autoincrement())
+  dept_id     Int
+  grade       Int         @db.TinyInt
+  score       Decimal     @db.Decimal(6, 2)
+  departments departments @relation(fields: [dept_id], references: [dept_id], onDelete: Cascade, onUpdate: NoAction, map: "english_grade_tables_ibfk_1")
+
+  @@unique([dept_id, grade], map: "uk_dept_grade")
+}
+
+model formula_configs {
+  config_id             Int                    @id @default(autoincrement())
+  dept_id               Int                    @unique(map: "uk_dept")
+  total_score           Int?                   @default(1000)
+  suneung_ratio         Decimal?               @default(100.00) @db.Decimal(5, 2)
+  subjects_config       Json?
+  selection_rules       Json?
+  bonus_rules           Json?
+  special_mode          Json?
+  legacy_formula        String?                @db.Text
+  created_at            DateTime?              @default(now()) @db.Timestamp(0)
+  updated_at            DateTime?              @default(now()) @db.Timestamp(0)
+  template_id           Int?
+  template_params       Json?
+  display_config        Json?
+  english_scores        Json?
+  history_scores        Json?
+  calculation_mode      String?                @default("legacy") @db.VarChar(20)
+  legacy_uid            Int?
+  practical_total       Int?                   @default(0) @map("실기총점")
+  calculation_templates calculation_templates? @relation(fields: [template_id], references: [template_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_template")
+  departments           departments            @relation(fields: [dept_id], references: [dept_id], onDelete: Cascade, onUpdate: NoAction, map: "formula_configs_ibfk_1")
+
+  @@index([template_id], map: "fk_template")
+}
+
+model grade_cuts {
+  id           Int          @id @default(autoincrement())
+  year_id      Int
+  exam_type    String       @map("모형") @db.VarChar(10)
+  subject_name String       @map("선택과목명") @db.VarChar(50)
+  grade        Int          @map("등급") @db.TinyInt
+  raw_score    Decimal?     @map("원점수") @db.Decimal(6, 2)
+  std_score    Decimal?     @map("표준점수") @db.Decimal(6, 2)
+  percentile   Decimal?     @map("백분위") @db.Decimal(6, 2)
+  year_configs year_configs @relation(fields: [year_id], references: [year_id], onDelete: Cascade, onUpdate: NoAction, map: "grade_cuts_ibfk_1")
+
+  @@unique([year_id, exam_type, subject_name, grade], map: "uk_year_exam_subj_grade")
+  @@index([year_id, exam_type], map: "idx_year_exam")
+}
+
+model group_changes {
+  id           Int                      @id @default(autoincrement())
+  univ_id      Int
+  dept_name    String                   @db.VarChar(100)
+  from_year    Int
+  to_year      Int
+  from_group   group_changes_from_group
+  to_group     group_changes_to_group
+  applied      Boolean?                 @default(false)
+  created_at   DateTime?                @default(now()) @db.Timestamp(0)
+  universities universities             @relation(fields: [univ_id], references: [univ_id], onDelete: Cascade, onUpdate: NoAction, map: "group_changes_ibfk_1")
+
+  @@index([to_year], map: "idx_to_year")
+  @@index([univ_id], map: "univ_id")
+}
+
+model highest_scores {
+  id           Int          @id @default(autoincrement())
+  year_id      Int
+  exam_type    String       @map("모형") @db.VarChar(10)
+  subject_name String       @map("과목명") @db.VarChar(50)
+  max_score    Decimal      @map("최고점") @db.Decimal(6, 2)
+  year_configs year_configs @relation(fields: [year_id], references: [year_id], onDelete: Cascade, onUpdate: NoAction, map: "highest_scores_ibfk_1")
+
+  @@unique([year_id, exam_type, subject_name], map: "uk_year_exam_subj")
+}
+
+model history_grade_tables {
+  id          Int         @id @default(autoincrement())
+  dept_id     Int
+  grade       Int         @db.TinyInt
+  score       Decimal     @db.Decimal(6, 2)
+  departments departments @relation(fields: [dept_id], references: [dept_id], onDelete: Cascade, onUpdate: NoAction, map: "history_grade_tables_ibfk_1")
+
+  @@unique([dept_id, grade], map: "uk_dept_grade")
+}
+
+model inquiry_conv_tables {
+  id                  Int         @id @default(autoincrement())
+  dept_id             Int
+  track               String      @map("계열") @db.VarChar(10)
+  percentile          Int         @map("백분위") @db.TinyInt
+  converted_std_score Decimal     @map("변환표준점수") @db.Decimal(6, 2)
+  departments         departments @relation(fields: [dept_id], references: [dept_id], onDelete: Cascade, onUpdate: NoAction, map: "inquiry_conv_tables_ibfk_1")
+
+  @@unique([dept_id, track, percentile], map: "uk_dept_type_pct")
+  @@index([dept_id], map: "idx_dept")
+}
+
+model jungsi_basic {
+  U_ID         Int       @id
+  year         Int       @map("학년도")
+  gun          String?   @map("군") @db.VarChar(10)
+  type         String?   @map("형태") @db.VarChar(20)
+  region       String?   @map("광역") @db.VarChar(20)
+  city         String?   @map("시구") @db.VarChar(20)
+  admission    String?   @map("입학처") @db.VarChar(50)
+  univ_name    String    @map("대학명") @db.VarChar(100)
+  dept_name    String    @map("학과명") @db.VarChar(100)
+  quota        String?   @map("모집정원") @db.VarChar(20)
+  logo_url     String?   @db.VarChar(255)
+  teacher_cert String?   @map("교직") @db.VarChar(20)
+  step_type    String?   @map("단계별") @db.VarChar(50)
+  updated_at   DateTime? @default(now()) @db.Timestamp(0)
+
+  @@index([univ_name], map: "idx_univ_name")
+  @@index([year], map: "idx_year")
+}
+
+model jungsi_highest_scores {
+  id           Int       @id @default(autoincrement())
+  year         Int       @map("학년도")
+  exam_type    String    @map("모형") @db.VarChar(10)
+  subject_name String    @map("과목명") @db.VarChar(50)
+  max_score    Decimal   @map("최고점") @db.Decimal(6, 2)
+  updated_at   DateTime? @db.Timestamp(0)
+
+  @@unique([year, exam_type, subject_name], map: "uk_year_exam_subj")
+}
+
+model jungsi_inquiry_conv {
+  id                  Int       @id @default(autoincrement())
+  U_ID                Int
+  year                Int       @map("학년도")
+  track               String    @map("계열") @db.VarChar(10)
+  percentile          Int       @map("백분위")
+  converted_std_score Decimal   @map("변환표준점수") @db.Decimal(6, 2)
+  updated_at          DateTime? @db.Timestamp(0)
+
+  @@unique([U_ID, year, track, percentile], map: "uk_uid_year_track_pct")
+  @@index([U_ID], map: "idx_uid")
+}
+
+model jungsi_practical_scores {
+  id         Int      @id @default(autoincrement())
+  U_ID       Int
+  year       Int      @map("학년도")
+  event_name String   @map("종목명") @db.VarChar(50)
+  gender     String?  @map("성별") @db.VarChar(10)
+  record     String?  @map("기록") @db.VarChar(50)
+  score      Decimal? @map("배점") @db.Decimal(6, 2)
+
+  @@index([U_ID, year], map: "idx_uid_year")
+  @@index([event_name], map: "idx_event_name")
+}
+
+model jungsi_ratio {
+  id                  Int       @id @default(autoincrement())
+  year                Int       @map("학년도")
+  calc_method         String?   @map("계산방식") @db.VarChar(20)
+  total_score         Int?      @map("총점")
+  calc_type           String?   @map("계산유형") @db.VarChar(20)
+  U_ID                Int       @unique
+  apply_method        String?   @map("반영방법") @db.VarChar(50)
+  suneung             Int?      @map("수능")
+  naesin              Int?      @map("내신")
+  practical           Int?      @map("실기")
+  practical_total     Int?      @map("실기총점")
+  has_selection       Int?      @map("선택형여부")
+  selection_condition String?   @map("선택조건") @db.VarChar(100)
+  selection_weights   String?   @map("선택가중치") @db.Text
+  history_method      String?   @map("한국사방식") @db.VarChar(50)
+  history_scores_text String?   @map("한국사점수") @db.Text
+  base_score          Int?      @map("기본점수")
+  fail_handling       String?   @map("미달처리") @db.VarChar(20)
+  etc                 String?   @map("기타") @db.Text
+  korean              Decimal?  @map("국어") @db.Decimal(5, 2)
+  math                Decimal?  @map("수학") @db.Decimal(5, 2)
+  english             Decimal?  @map("영어") @db.Decimal(5, 2)
+  inquiry             Decimal?  @map("탐구") @db.Decimal(5, 2)
+  inquiry_count       Int?      @map("탐구수")
+  history             String?   @map("한국사") @db.VarChar(50)
+  english_scores      Json?
+  history_scores      Json?
+  selection_rules     Json?
+  special_formula     String?   @map("특수공식") @db.Text
+  etc_settings        Json?     @map("기타설정")
+  bonus_rules         Json?
+  score_config        Json?
+  practical_mode      String?   @map("실기모드") @db.VarChar(20)
+  practical_special   Json?     @map("실기특수설정")
+  updated_at          DateTime? @default(now()) @db.Timestamp(0)
+
+  @@index([year], map: "idx_year")
+}
+
+model practical_calc_rules {
+  id          Int                            @id @default(autoincrement())
+  dept_id     Int                            @unique(map: "uk_dept")
+  rule_type   practical_calc_rules_rule_type
+  rule_config Json
+  created_at  DateTime?                      @default(now()) @db.Timestamp(0)
+  departments departments                    @relation(fields: [dept_id], references: [dept_id], onDelete: Cascade, onUpdate: NoAction, map: "practical_calc_rules_ibfk_1")
+}
+
+model practical_score_tables {
+  id          Int         @id @default(autoincrement())
+  dept_id     Int
+  event_name  String      @map("종목명") @db.VarChar(50)
+  gender      String?     @default("공통") @map("성별") @db.VarChar(10)
+  record      String?     @map("기록") @db.VarChar(50)
+  score       Decimal?    @map("점수") @db.Decimal(6, 2)
+  departments departments @relation(fields: [dept_id], references: [dept_id], onDelete: Cascade, onUpdate: NoAction, map: "practical_score_tables_ibfk_1")
+
+  @@index([dept_id, event_name], map: "idx_dept_event")
+}
+
+model student_scores {
+  score_id          Int       @id @default(autoincrement())
+  student_id        Int       @unique(map: "uk_student")
+  korean_subject    String?   @map("국어_선택과목") @db.VarChar(20)
+  korean_std        Decimal?  @map("국어_표준점수") @db.Decimal(6, 2)
+  korean_pct        Decimal?  @map("국어_백분위") @db.Decimal(6, 2)
+  korean_grade      Int?      @map("국어_등급") @db.TinyInt
+  math_subject      String?   @map("수학_선택과목") @db.VarChar(20)
+  math_std          Decimal?  @map("수학_표준점수") @db.Decimal(6, 2)
+  math_pct          Decimal?  @map("수학_백분위") @db.Decimal(6, 2)
+  math_grade        Int?      @map("수학_등급") @db.TinyInt
+  english_grade     Int?      @map("영어_등급") @db.TinyInt
+  history_grade     Int?      @map("한국사_등급") @db.TinyInt
+  inquiry1_subject  String?   @map("탐구1_과목명") @db.VarChar(50)
+  inquiry1_std      Decimal?  @map("탐구1_표준점수") @db.Decimal(6, 2)
+  inquiry1_pct      Decimal?  @map("탐구1_백분위") @db.Decimal(6, 2)
+  inquiry1_grade    Int?      @map("탐구1_등급") @db.TinyInt
+  inquiry2_subject  String?   @map("탐구2_과목명") @db.VarChar(50)
+  inquiry2_std      Decimal?  @map("탐구2_표준점수") @db.Decimal(6, 2)
+  inquiry2_pct      Decimal?  @map("탐구2_백분위") @db.Decimal(6, 2)
+  inquiry2_grade    Int?      @map("탐구2_등급") @db.TinyInt
+  practical_records Json?
+  created_at        DateTime? @default(now()) @db.Timestamp(0)
+  updated_at        DateTime? @default(now()) @db.Timestamp(0)
+  students          students  @relation(fields: [student_id], references: [student_id], onDelete: Cascade, onUpdate: NoAction, map: "student_scores_ibfk_1")
+}
+
+model students {
+  student_id          Int                   @id @default(autoincrement())
+  year_id             Int
+  branch_name         String                @db.VarChar(50)
+  student_name        String                @db.VarChar(50)
+  school_name         String?               @db.VarChar(100)
+  gender              students_gender?
+  phone               String?               @db.VarChar(20)
+  parent_phone        String?               @db.VarChar(20)
+  created_at          DateTime?             @default(now()) @db.Timestamp(0)
+  updated_at          DateTime?             @default(now()) @db.Timestamp(0)
+  counseling_wishlist counseling_wishlist[]
+  student_scores      student_scores?
+  year_configs        year_configs          @relation(fields: [year_id], references: [year_id], onDelete: Cascade, onUpdate: NoAction, map: "students_ibfk_1")
+
+  @@index([student_name], map: "idx_name")
+  @@index([year_id, branch_name], map: "idx_year_branch")
+}
+
+model universities {
+  univ_id       Int             @id @default(autoincrement())
+  univ_name     String          @unique(map: "uk_univ_name") @db.VarChar(100)
+  short_name    String?         @db.VarChar(50)
+  region        String?         @db.VarChar(50)
+  logo_url      String?         @db.VarChar(255)
+  created_at    DateTime?       @default(now()) @db.Timestamp(0)
+  departments   departments[]
+  group_changes group_changes[]
+
+  @@index([region], map: "idx_region")
+}
+
+model user_sessions {
+  session_id    Int       @id @default(autoincrement())
+  user_id       Int
+  refresh_token String    @db.VarChar(500)
+  expires_at    DateTime  @db.Timestamp(0)
+  created_at    DateTime? @default(now()) @db.Timestamp(0)
+  users         users     @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "user_sessions_ibfk_1")
+
+  @@index([refresh_token(length: 255)], map: "idx_token")
+  @@index([user_id], map: "idx_user")
+}
+
+model users {
+  user_id       Int             @id @default(autoincrement())
+  username      String          @unique(map: "username") @db.VarChar(50)
+  password_hash String          @db.VarChar(255)
+  name          String?         @db.VarChar(50)
+  branch_id     Int?
+  phone         String?         @db.VarChar(20)
+  role          users_role?     @default(staff)
+  status        users_status?   @default(pending)
+  last_login    DateTime?       @db.Timestamp(0)
+  created_at    DateTime?       @default(now()) @db.Timestamp(0)
+  updated_at    DateTime?       @default(now()) @db.Timestamp(0)
+  user_sessions user_sessions[]
+  branches      branches?       @relation(fields: [branch_id], references: [branch_id], onUpdate: NoAction, map: "users_ibfk_1")
+
+  @@index([branch_id], map: "idx_branch")
+  @@index([username], map: "idx_username")
+}
+
+model year_configs {
+  year_id          Int              @id
+  is_active        Boolean?         @default(false)
+  data_copied_from Int?
+  created_at       DateTime?        @default(now()) @db.Timestamp(0)
+  updated_at       DateTime?        @default(now()) @db.Timestamp(0)
+  departments      departments[]
+  grade_cuts       grade_cuts[]
+  highest_scores   highest_scores[]
+  students         students[]
+
+  @@index([is_active], map: "idx_active")
+}
+
+// Unused legacy enums removed - using String fields with @map() instead
+
+enum practical_calc_rules_rule_type {
+  weighted
+  top_n
+  pass_count
+  formula
+  average
+  lookup
+  simple_sum
+}
+
+enum change_logs_action {
+  INSERT
+  UPDATE
+  DELETE
+}
+
+// More unused legacy enums removed
+
+enum calculation_templates_pattern_type {
+  basic_ratio
+  weighted_std
+  normalized
+  top_n_select
+  ranked_weights
+  max_subject
+  custom
+}
+
+enum group_changes_from_group {
+  ga @map("가")
+  na @map("나")
+  da @map("다")
+}
+
+enum students_gender {
+  male   @map("남")
+  female @map("여")
+}
+
+enum group_changes_to_group {
+  ga @map("가")
+  na @map("나")
+  da @map("다")
+}
+
+enum users_role {
+  admin
+  manager
+  staff
+}
+
+enum users_status {
+  pending
+  active
+  blocked
+}
+
+// ========== SaaS 사용자 (카카오 로그인) ==========
+model saas_users {
+  id            Int     @id @default(autoincrement())
+  kakao_id      BigInt  @unique
+  nickname      String? @db.VarChar(100)
+  email         String? @db.VarChar(255)
+  profile_image String? @db.VarChar(500)
+
+  // 추가 프로필 정보
+  name           String? @db.VarChar(50) // 실명
+  school         String? @db.VarChar(100) // 학교
+  grade          String? @db.VarChar(10) // 학년 (1, 2, 3, N수)
+  gender         String? @db.VarChar(10) // 남/여
+  calc_exam_type String? @default("수능") @db.VarChar(20) // 계산에 사용할 시험 유형
+
+  created_at DateTime  @default(now()) @db.Timestamp(0)
+  updated_at DateTime  @default(now()) @updatedAt @db.Timestamp(0)
+  last_login DateTime? @db.Timestamp(0)
+
+  // Relations
+  saved_scores       saas_saved_scores[]
+  saved_universities saas_saved_universities[]
+  practical_records  saas_practical_records[]
+  event_types        saas_practical_event_types[]
+  notice_reads       saas_notice_reads[]
+}
+
+// 시험별 성적 저장 (3월모의, 6월모의, 9월모의, 수능)
+model saas_saved_scores {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  exam_type  String   @db.VarChar(20) // "3월모의", "6월모의", "9월모의", "수능"
+  year       Int?     // 학년도 (미사용, NULL 허용)
+  scores     Json // 성적 데이터
+  created_at DateTime @default(now()) @db.Timestamp(0)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamp(0)
+
+  user saas_users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, exam_type, year])
+  @@index([user_id], map: "idx_user")
+}
+
+// 저장한 대학
+model saas_saved_universities {
+  id                Int      @id @default(autoincrement())
+  user_id           Int
+  U_ID              Int // jungsi_basic의 U_ID
+  sunung_score      Decimal? @db.Decimal(8, 2) // 저장 시점의 수능환산점수
+  naesin_score      Decimal? @db.Decimal(6, 2) // 사용자 입력 내신점수
+  practical_score   Decimal? @db.Decimal(8, 2) // 실기 환산점수
+  practical_records Json? // 종목별 {event, record, score, deduction}
+  memo              String?  @db.Text
+  created_at        DateTime @default(now()) @db.Timestamp(0)
+  updated_at        DateTime @default(now()) @updatedAt @db.Timestamp(0)
+
+  user saas_users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, U_ID])
+  @@index([user_id], map: "idx_saved_user")
+}
+
+// 실기 기록
+model saas_practical_records {
+  id             Int       @id @default(autoincrement())
+  user_id        Int
+  event_name     String    @db.VarChar(50) // 종목명
+  record         String?   @db.VarChar(50) // 기록 (문자열)
+  numeric_record Decimal?  @db.Decimal(10, 2) // 숫자로 변환된 기록 (그래프용)
+  record_date    DateTime? @db.Date // 기록일
+  memo           String?   @db.Text
+  created_at     DateTime  @default(now()) @db.Timestamp(0)
+  updated_at     DateTime  @default(now()) @updatedAt @db.Timestamp(0)
+
+  user saas_users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id], map: "idx_practical_user")
+  @@index([event_name], map: "idx_event")
+}
+
+// 사용자별 커스텀 실기 종목
+model saas_practical_event_types {
+  id            Int                            @id @default(autoincrement())
+  user_id       Int
+  name          String                         @db.VarChar(50) // 종목명
+  direction     saas_practical_event_direction @default(higher) // lower=낮을수록좋음
+  unit          String?                        @db.VarChar(20) // 단위 (초, m, 회 등)
+  display_order Int                            @default(0)
+  is_default    Boolean                        @default(false) // 기본 제공 종목인지
+  created_at    DateTime                       @default(now()) @db.Timestamp(0)
+
+  user saas_users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, name])
+  @@index([user_id], map: "idx_event_type_user")
+}
+
+enum saas_practical_event_direction {
+  lower
+  higher
+}
+
+// ========== 공지사항 ==========
+model saas_notices {
+  id           Int                 @id @default(autoincrement())
+  title        String              @db.VarChar(200)
+  content      String              @db.Text
+  type         saas_notices_type   @default(general)
+  is_active    Boolean             @default(true)
+  published_at DateTime?           @db.Timestamp(0)
+  created_at   DateTime            @default(now()) @db.Timestamp(0)
+  updated_at   DateTime            @default(now()) @updatedAt @db.Timestamp(0)
+
+  reads saas_notice_reads[]
+
+  @@index([is_active, published_at])
+}
+
+enum saas_notices_type {
+  general // 일반
+  urgent  // 긴급
+  event   // 이벤트
+}
+
+model saas_notice_reads {
+  id        Int      @id @default(autoincrement())
+  user_id   Int
+  notice_id Int
+  read_at   DateTime @default(now()) @db.Timestamp(0)
+
+  user   saas_users   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  notice saas_notices @relation(fields: [notice_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, notice_id])
+  @@index([user_id])
+  @@index([notice_id])
+}
+
+model subject_ratios_display {
+  id            Int       @id
+  year          Int
+  univ_name     String    @db.VarChar(100)
+  dept_name     String    @db.VarChar(100)
+  korean_raw    String?   @db.VarChar(50)
+  math_raw      String?   @db.VarChar(50)
+  english_raw   String?   @db.VarChar(50)
+  inquiry_raw   String?   @db.VarChar(50)
+  history_raw   String?   @db.VarChar(50)
+  inquiry_count String?   @db.VarChar(20)
+  matched_uid   Int?
+  match_status  String?   @db.VarChar(20)
+  created_at    DateTime? @db.Timestamp(0)
+
+  @@index([year], map: "idx_year")
+  @@index([matched_uid], map: "idx_matched_uid")
+}

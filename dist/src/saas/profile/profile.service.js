@@ -1,0 +1,66 @@
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ProfileService = void 0;
+const common_1 = require("@nestjs/common");
+const prisma_service_1 = require("../../prisma/prisma.service");
+let ProfileService = class ProfileService {
+    prisma;
+    constructor(prisma) {
+        this.prisma = prisma;
+    }
+    async getProfile(userId) {
+        return this.prisma.saas_users.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                nickname: true,
+                email: true,
+                profile_image: true,
+                name: true,
+                school: true,
+                grade: true,
+                gender: true,
+                calc_exam_type: true,
+            },
+        });
+    }
+    async updateProfile(userId, data) {
+        return this.prisma.saas_users.update({
+            where: { id: userId },
+            data: {
+                name: data.name,
+                school: data.school,
+                grade: data.grade,
+                gender: data.gender,
+                calc_exam_type: data.calc_exam_type,
+                updated_at: new Date(),
+            },
+            select: {
+                id: true,
+                nickname: true,
+                email: true,
+                profile_image: true,
+                name: true,
+                school: true,
+                grade: true,
+                gender: true,
+                calc_exam_type: true,
+            },
+        });
+    }
+};
+exports.ProfileService = ProfileService;
+exports.ProfileService = ProfileService = __decorate([
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+], ProfileService);
+//# sourceMappingURL=profile.service.js.map
