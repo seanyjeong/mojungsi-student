@@ -45,6 +45,7 @@ interface SavedUniversity {
 interface PracticalScoreData {
   events: string[];
   scoreTable: Record<string, ScoreRow[]>;
+  units?: Record<string, { unit: string; direction: string }>;
   practicalMode: "basic" | "special";
   practicalTotal: number;
   baseScore: number;
@@ -473,6 +474,7 @@ function UniversityModal({
         record: e.record,
         score: e.score,
         deduction: e.deduction,
+        unit: practicalData?.units?.[e.event]?.unit || '',
       })),
       totalDeduction: practicalResult?.totalDeduction,
       ratios: {

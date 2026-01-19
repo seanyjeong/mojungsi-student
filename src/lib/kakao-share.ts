@@ -19,6 +19,7 @@ interface ShareScoreData {
     record: string;
     score?: number;
     deduction?: number;
+    unit?: string;
   }>;
   totalDeduction?: number;
   ratios: {
@@ -76,10 +77,12 @@ export function shareScore(data: ShareScoreData): boolean {
   let practicalLines = "";
   if (data.practicalRecords && data.practicalRecords.length > 0) {
     const lines = data.practicalRecords.map((r) => {
+      if (!r.record) return null;
       const deductionText = r.deduction && r.deduction > 0
         ? `(${r.deduction}감)`
         : (r.score !== undefined ? "(만점)" : "");
-      return `${r.event} ${r.record} ${deductionText}`.trim();
+      const unitText = r.unit || '';
+      return `${r.event} ${r.record}${unitText} ${deductionText}`.trim();
     }).filter(Boolean);
     if (lines.length > 0) {
       practicalLines = `\n${lines.join("\n")}`;

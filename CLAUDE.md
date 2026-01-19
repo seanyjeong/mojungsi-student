@@ -1,4 +1,4 @@
-# 학생용 Web (v0.4.22)
+# 학생용 Web (v0.4.23)
 
 > **전체 프로젝트 명세**: `../docs/` 참조
 > - `../docs/API.md` - 백엔드 API
@@ -10,12 +10,50 @@
 
 ---
 
+## 내일 할 일 (2026-01-20)
+
+### 1. 실기 종목 단위 확인 (필수)
+사용자가 "ㄱㄱ" 하면 **종목 하나씩 물어보기**:
+- 90개+ 종목 각각 단위 확인 (초/cm/m/회/점)
+- 확인된 종목은 아래 TODO 섹션 목록에서 체크
+
+### 2. DB 테이블 생성
+```sql
+CREATE TABLE practical_event_units (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  event_name VARCHAR(50) NOT NULL UNIQUE,
+  unit VARCHAR(10) NOT NULL,
+  direction ENUM('lower', 'higher') DEFAULT 'higher'
+);
+```
+
+### 3. 단위 데이터 INSERT
+확인된 종목들 INSERT 문 작성 후 실행
+
+### 4. API 수정
+- `api/src/saas/universities/saved-universities.service.ts`
+- 실기 배점표 조회 시 unit 포함하여 반환
+
+### 5. 프론트 수정
+- `src/lib/kakao-share.ts` - 공유 메시지에 단위 표시 (예: 5.21초)
+
+---
+
 ## 배포 시 필수 체크
 
 ### 버전업 필요한 파일 (3곳)
 1. `package.json` - `"version": "x.x.x"`
 2. `CLAUDE.md` - 맨 위 제목의 버전
 3. `src/components/bottom-nav.tsx` - `APP_VERSION = "x.x.x"`
+
+### 문서 업데이트 필수 (4곳)
+**코드 수정/기능 추가 시 반드시 함께 업데이트:**
+| 파일 | 업데이트 내용 |
+|------|--------------|
+| `../docs/API.md` | API 엔드포인트 추가/변경 시 |
+| `../docs/DATABASE.md` | DB 스키마 변경 시 |
+| `../docs/FRONTEND.md` | 페이지/컴포넌트 추가, 버전 변경 시 |
+| `../docs/FEATURE_PLAN.md` | 기능 완료/추가 시 체크리스트 업데이트 |
 
 ### 배포 명령어
 ```bash
@@ -185,6 +223,23 @@ Next.js 15 / TypeScript / Tailwind / Radix UI / lucide-react / @nivo/line
 
 ## 변경 이력
 
+### v0.4.23 (2026-01-19)
+- **카카오 공유에 실기 단위 표시**
+  - DB: `practical_event_units` 테이블 추가 (96개 종목)
+  - API: 실기 배점표 조회 시 `units` 필드 반환
+  - 프론트: 카카오 공유 메시지에 단위 표시 (예: 5.21초, 285cm)
+
+### v0.4.22 (2026-01-19)
+- **카카오 공유 기능 완성**
+  - 텍스트형 공유 (글자 제한 적음, 링크 클릭 가능)
+  - 메시지 형식: 대학명 → 학과명 → 총점 → 수능/내신/실기 → 실기 종목별 기록
+  - 감수 표기: (1감), (만점) 형식
+  - 소숫점 포맷: .0이면 정수, 아니면 1자리
+- **파일**: `src/lib/kakao-share.ts`
+- **카카오 설정 필요**:
+  - 플랫폼 > Web > 사이트 도메인: `https://sjungsi.vercel.app`
+  - 제품 링크 관리 > 웹 도메인: `https://sjungsi.vercel.app`
+
 ### v0.4.15 (2026-01-18)
 - 성적 연도 의존성 제거 (year 컬럼 미사용)
 - 입시연도는 학년으로만 결정
@@ -256,3 +311,70 @@ CREATE TABLE practical_event_units (
 2. DB 테이블 생성 + 데이터 INSERT
 3. API 수정 (unit 반환)
 4. 프론트 수정 (카카오 공유에 단위 표시)
+
+---
+
+## TODO: 배점표 관리 기능 추가
+
+### 참고 파일 (maxjungsi222/)
+| 파일 | 설명 | 특징 |
+|------|------|------|
+| `practical_editor.html` | Handsontable 기반 에디터 | 엑셀처럼 인라인 편집, 종목별/성별 그룹핑 |
+| `silgi-editor.html` | 기본 CRUD 에디터 | Select2 검색, 대량 붙여넣기 지원 |
+
+### API 엔드포인트 (supermax.kr)
+
+#### 기본 CRUD (silgi-editor)
+| Method | Endpoint | 설명 |
+|--------|----------|------|
+| GET | `/jungsi/schools/{year}` | 학교 목록 조회 |
+| GET | `/jungsi/practical-scores/{U_ID}/{year}` | 배점표 조회 |
+| POST | `/jungsi/practical-scores/save` | 한 줄 추가 |
+| DELETE | `/jungsi/practical-scores/delete/{id}` | 한 줄 삭제 |
+| POST | `/jungsi/practical-scores/bulk-save` | 대량 추가 (엑셀 붙여넣기) |
+
+#### 고급 에디터 (practical_editor)
+| Method | Endpoint | 설명 |
+|--------|----------|------|
+| GET | `/jungsi/admin/practical-table/schools?year={year}` | 학교 목록 (배점표 있는 학교만) |
+| GET | `/jungsi/admin/practical-table/data?year={year}&U_ID={U_ID}` | 배점표 데이터 |
+| POST | `/jungsi/admin/practical-table/bulk-update` | 일괄 저장 (추가/수정/삭제) |
+
+### 배점표 데이터 구조
+```json
+{
+  "id": 123,
+  "종목명": "100m",
+  "성별": "남",
+  "기록": "12.50",
+  "배점": "100"
+}
+```
+
+### 대량 추가 (bulk-save) Payload
+```json
+{
+  "U_ID": 177,
+  "year": 2027,
+  "eventName": "100m",
+  "gender": "남",
+  "rows_text": "12.50\t100\n12.60\t99\n12.70\t98"
+}
+```
+
+### 일괄 저장 (bulk-update) Payload
+```json
+{
+  "U_ID": 177,
+  "year": 2027,
+  "updates": [{ "id": 123, "기록": "12.55", "배점": "99" }],
+  "additions": [{ "종목명": "100m", "성별": "남", "기록": "13.00", "배점": "95" }],
+  "deletions": [124, 125]
+}
+```
+
+### 구현 시 참고사항
+1. **Handsontable**: 엑셀처럼 인라인 편집, 무료 non-commercial 라이선스
+2. **Select2**: 학교 검색용 자동완성 select
+3. **JWT 인증**: localStorage에 `jwt_token` 저장
+4. **변경 감지**: 원본 데이터와 현재 데이터 비교하여 추가/수정/삭제 분류
