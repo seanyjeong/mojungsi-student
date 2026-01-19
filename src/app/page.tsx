@@ -201,7 +201,6 @@ export default function HomePage() {
           <li><span className="font-medium text-purple-600">1.</span> 실기관리 → <span className="font-medium">종목 설정</span> 탭에서 관리할 종목 추가</li>
           <li><span className="font-medium text-purple-600">2.</span> <span className="font-medium">기록 관리</span> 탭에서 날짜별 기록 입력</li>
           <li><span className="font-medium text-purple-600">3.</span> <span className="font-medium">성장 그래프</span>에서 실력 변화 확인</li>
-          <li><span className="font-medium text-purple-600">4.</span> 저장대학에서 실기점수 자동 계산!</li>
         </ul>
       </div>
 
