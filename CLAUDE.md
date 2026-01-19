@@ -1,4 +1,4 @@
-# 학생용 Web (v0.4.25)
+# 학생용 Web (v0.4.26)
 
 > **전체 프로젝트 명세**: `../docs/` 참조
 > - `../docs/API.md` - 백엔드 API
@@ -193,6 +193,11 @@ Next.js 15 / TypeScript / Tailwind / Radix UI / lucide-react / @nivo/line
 ---
 
 ## 변경 이력
+
+### v0.4.26 (2026-01-19)
+- **그라디언트 배경 추가**
+  - 상단에서 파란색 → 투명으로 fade out
+  - 다크모드 대응 (dark:from-blue-900/20)
 
 ### v0.4.25 (2026-01-19)
 - **Glass morphism 적용**

@@ -30,7 +30,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 pb-20">
+        <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 pb-20 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-100 via-transparent to-transparent dark:from-blue-900/20">
           <Header />
           <main className="max-w-2xl mx-auto px-4 py-6">{children}</main>
         </div>
