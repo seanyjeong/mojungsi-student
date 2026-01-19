@@ -1,4 +1,4 @@
-# 학생용 Web (v0.4.29)
+# 학생용 Web (v0.4.30)
 
 > **전체 프로젝트 명세**: `../docs/` 참조
 > - `../docs/API.md` - 백엔드 API
@@ -193,6 +193,13 @@ Next.js 15 / TypeScript / Tailwind / Radix UI / lucide-react / @nivo/line
 ---
 
 ## 변경 이력
+
+### v0.4.30 (2026-01-19)
+- **성능 최적화 (Vercel React Best Practices)**
+  - API 병렬 호출로 로딩 속도 개선 (async-parallel)
+  - N+1 문제 해결: checkIsSaved 200회 → getSavedUniversities 1회
+  - UniversityCard React.memo 적용으로 리렌더링 최적화
+  - Nivo 차트 동적 import로 초기 번들 사이즈 감소
 
 ### v0.4.29 (2026-01-19)
 - **이모지 → SVG 아이콘 교체**
