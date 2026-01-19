@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, memo } from "react";
 import { useAuth, getToken, useRequireProfile } from "@/lib/auth";
-import { getUniversities, calculateAll, toggleSaveUniversity, checkIsSaved, getProfile, getScores, getActiveYear } from "@/lib/api";
+import { getUniversities, calculateAll, toggleSaveUniversity, getSavedUniversities, getProfile, getScores, getActiveYear } from "@/lib/api";
 import { ScoreForm } from "@/types";
 import { Heart, Filter, MapPin, Users, TrendingUp, ChevronDown, ChevronUp, Info, AlertCircle } from "lucide-react";
 
@@ -200,24 +200,27 @@ export default function SearchPage() {
     try {
       // 활성 연도 조회
       const activeYear = await getActiveYear();
-      const rawData = await getUniversities(activeYear);
+
+      // 대학 목록과 사용자 데이터 병렬 조회 (async-parallel 최적화)
+      const token = getToken();
+      const [rawData, profileAndScores] = await Promise.all([
+        getUniversities(activeYear),
+        token ? Promise.all([getProfile(token), getScores(token)]) : Promise.resolve([null, null]),
+      ]);
+
       const data = transformApiResponse(rawData);
 
       // 로그인 시에만 DB에서 성적 가져와서 계산 (비로그인은 계산 안 함)
       let scores: ScoreForm | null = null;
       let userYear = activeYear; // 기본값은 서버 설정 연도
-      const token = getToken();
-      if (token) {
+      if (token && profileAndScores[0]) {
         try {
+          const [profile, dbScores] = profileAndScores as [any, any];
           // 프로필에서 계산용 시험 타입 및 학년 조회
-          const profile = await getProfile(token);
           const selectedExamType = profile.calc_exam_type || "수능";
 
           // 학년에 따라 입시연도 결정: 2학년→2028, 3학년/N수→2027
           userYear = profile.grade === "2학년" ? 2028 : 2027;
-
-          // 성적 조회 (연도 무관)
-          const dbScores = await getScores(token);
 
           if (dbScores && dbScores.length > 0) {
             // 선택된 시험 타입의 성적 찾기
@@ -267,29 +270,24 @@ export default function SearchPage() {
         }
       }
 
-      // Check saved status and get user profile for logged-in users
-      if (isLoggedIn) {
-        const token = getToken();
-        if (token) {
-          // Get user profile (including gender)
-          try {
-            const profile = await getProfile(token);
-            setUserGender(profile.gender || null);
-          } catch {
-            // ignore profile fetch error
-          }
+      // Check saved status for logged-in users (N+1 → 1 최적화)
+      if (isLoggedIn && token) {
+        // 이미 위에서 profile 조회함 - 재사용
+        if (profileAndScores[0]) {
+          const profile = profileAndScores[0] as any;
+          setUserGender(profile.gender || null);
+        }
 
-          const withSaved = await Promise.all(
-            calculated.map(async (u) => {
-              try {
-                const { saved } = await checkIsSaved(token, u.U_ID);
-                return { ...u, isSaved: saved };
-              } catch {
-                return u;
-              }
-            })
-          );
-          calculated = withSaved;
+        // 저장된 대학 목록을 한 번에 조회 (N+1 제거)
+        try {
+          const savedList = await getSavedUniversities(token);
+          const savedUIds = new Set(savedList.map((s: any) => s.U_ID));
+          calculated = calculated.map((u) => ({
+            ...u,
+            isSaved: savedUIds.has(u.U_ID),
+          }));
+        } catch {
+          // 저장 목록 조회 실패 시 무시
         }
       }
 
@@ -305,17 +303,14 @@ export default function SearchPage() {
     loadData();
   }, [loadData]);
 
-  const handleToggleSave = async (uId: number) => {
+  // useCallback으로 메모이제이션 (rerender-memo 최적화)
+  const handleToggleSave = useCallback(async (uId: number, score?: number) => {
     if (!isLoggedIn) {
       alert("로그인이 필요합니다");
       return;
     }
     const token = getToken();
     if (!token) return;
-
-    // 저장 시 환산점수도 함께 전달
-    const univ = universities.find((u) => u.U_ID === uId);
-    const score = univ?.calculatedScore;
 
     setSavingId(uId);
     try {
@@ -328,7 +323,7 @@ export default function SearchPage() {
     } finally {
       setSavingId(null);
     }
-  };
+  }, [isLoggedIn]);
 
   const filteredUniversities = useMemo(() => {
     return universities.filter((u) => {
@@ -528,7 +523,7 @@ export default function SearchPage() {
                   <UniversityCard
                     key={univ.U_ID}
                     univ={univ}
-                    onToggleSave={() => handleToggleSave(univ.U_ID)}
+                    onToggleSave={handleToggleSave}
                     saving={savingId === univ.U_ID}
                     userGender={userGender}
                   />
@@ -602,14 +597,15 @@ function SubjectRatioCell({ label, value, suffix }: { label: string; value?: str
   );
 }
 
-function UniversityCard({
+// React.memo로 불필요한 리렌더링 방지 (rerender-memo 최적화)
+const UniversityCard = memo(function UniversityCard({
   univ,
   onToggleSave,
   saving,
   userGender,
 }: {
   univ: CalculatedUniv;
-  onToggleSave: () => void;
+  onToggleSave: (uId: number, score?: number) => void;
   saving: boolean;
   userGender: string | null;
 }) {
@@ -617,6 +613,10 @@ function UniversityCard({
 
   // 남자 사용자가 여대를 볼 때 저장 불가
   const isRestricted = univ.isWomensUniv && userGender === "남";
+
+  const handleSaveClick = useCallback(() => {
+    onToggleSave(univ.U_ID, univ.calculatedScore);
+  }, [onToggleSave, univ.U_ID, univ.calculatedScore]);
 
   return (
     <div className={`rounded-xl p-4 shadow-sm relative ${
@@ -633,7 +633,7 @@ function UniversityCard({
 
       {/* Save Button */}
       <button
-        onClick={onToggleSave}
+        onClick={handleSaveClick}
         disabled={saving || isRestricted}
         title={isRestricted ? "여대는 저장할 수 없습니다" : undefined}
         className={`absolute top-4 right-4 p-2 rounded-full transition ${
@@ -754,4 +754,4 @@ function UniversityCard({
       )}
     </div>
   );
-}
+});

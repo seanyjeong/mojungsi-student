@@ -2,12 +2,22 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { useAuth, getToken, useRequireProfile } from "@/lib/auth";
 import { getPracticalRecords, getEventTypes, EventType } from "@/lib/api";
-import { Dumbbell, LineChart, Settings, ClipboardList } from "lucide-react";
+import { Dumbbell, LineChart, Settings, ClipboardList, Loader2 } from "lucide-react";
 import RecordTab from "./components/RecordTab";
-import GrowthChart from "./components/GrowthChart";
 import EventSettings from "./components/EventSettings";
+
+// Nivo 차트가 무거우므로 동적 로드 (bundle-dynamic-imports 최적화)
+const GrowthChart = dynamic(() => import("./components/GrowthChart"), {
+  loading: () => (
+    <div className="flex items-center justify-center min-h-[300px]">
+      <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+    </div>
+  ),
+  ssr: false, // 차트는 클라이언트에서만 렌더링
+});
 
 interface PracticalRecord {
   id: number;
