@@ -7,7 +7,13 @@ import { getProfile, updateProfile, getScores, saveScore, withdrawUser, getActiv
 import { ScoreForm } from "@/types";
 import { User, Pencil, Save, Book, Calculator, Globe, Landmark, Search, AlertTriangle, X } from "lucide-react";
 
-const EXAM_TYPES = ["3월모의고사", "6월모평", "9월모평", "수능"];
+// DB 저장값과 화면 표시 라벨 매핑
+const EXAM_TYPES = [
+  { value: "3월모의고사", label: "3월" },
+  { value: "6월모평", label: "6월" },
+  { value: "9월모평", label: "9월" },
+  { value: "수능", label: "수능" },
+];
 const GRADE_OPTIONS = ["1", "2", "3", "N수"];
 
 const 사회탐구 = ["생활과윤리", "윤리와사상", "한국지리", "세계지리", "동아시아사", "세계사", "정치와법", "경제", "사회문화"];
@@ -29,25 +35,31 @@ interface ScoreData {
   국어_표준점수?: number;
   국어_백분위?: number;
   국어_등급?: number;
+  국어_미응시?: boolean;
   수학_선택과목?: string;
   수학_원점수?: number;
   수학_표준점수?: number;
   수학_백분위?: number;
   수학_등급?: number;
+  수학_미응시?: boolean;
   영어_원점수?: number;
   영어_등급?: number;
+  영어_미응시?: boolean;
   한국사_원점수?: number;
   한국사_등급?: number;
+  한국사_미응시?: boolean;
   탐구1_선택과목?: string;
   탐구1_원점수?: number;
   탐구1_표준점수?: number;
   탐구1_백분위?: number;
   탐구1_등급?: number;
+  탐구1_미응시?: boolean;
   탐구2_선택과목?: string;
   탐구2_원점수?: number;
   탐구2_표준점수?: number;
   탐구2_백분위?: number;
   탐구2_등급?: number;
+  탐구2_미응시?: boolean;
 }
 
 export default function MyPage() {
@@ -437,18 +449,18 @@ export default function MyPage() {
           {/* Exam Type Selector */}
           <div className="bg-white dark:bg-zinc-800 rounded-xl p-4 shadow-sm">
             <p className="text-sm text-zinc-500 mb-3">성적 입력할 시험 선택</p>
-            <div className="flex gap-2 overflow-x-auto pb-2">
+            <div className="grid grid-cols-4 gap-2">
               {EXAM_TYPES.map((exam) => (
                 <button
-                  key={exam}
-                  onClick={() => setSelectedExam(exam)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition ${
-                    selectedExam === exam
+                  key={exam.value}
+                  onClick={() => setSelectedExam(exam.value)}
+                  className={`px-3 py-2 rounded-full text-sm font-medium transition ${
+                    selectedExam === exam.value
                       ? "bg-blue-500 text-white"
-                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border dark:border-zinc-700"
+                      : "bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400"
                   }`}
                 >
-                  {exam}
+                  {exam.label}
                 </button>
               ))}
             </div>
@@ -456,23 +468,23 @@ export default function MyPage() {
             {/* 계산에 사용할 시험 선택 */}
             <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-700">
               <p className="text-sm text-zinc-500 mb-3">🧮 계산에 사용할 시험</p>
-              <div className="flex gap-2 overflow-x-auto">
+              <div className="grid grid-cols-4 gap-2">
                 {EXAM_TYPES.map((exam) => (
                   <button
-                    key={exam}
-                    onClick={() => handleSetCalcExam(exam)}
-                    className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition ${
-                      calcExam === exam
+                    key={exam.value}
+                    onClick={() => handleSetCalcExam(exam.value)}
+                    className={`px-3 py-2 rounded-full text-sm font-medium transition ${
+                      calcExam === exam.value
                         ? "bg-green-500 text-white"
-                        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border dark:border-zinc-700"
+                        : "bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400"
                     }`}
                   >
-                    {exam} {calcExam === exam && "✓"}
+                    {exam.label} {calcExam === exam.value && "✓"}
                   </button>
                 ))}
               </div>
               <p className="text-xs text-zinc-400 mt-2">
-                대학검색에서 {calcExam} 성적으로 환산점수를 계산합니다
+                대학검색에서 {EXAM_TYPES.find(e => e.value === calcExam)?.label || calcExam} 성적으로 계산
               </p>
             </div>
           </div>
@@ -763,94 +775,133 @@ function ScoreCard({
     setScore((s) => ({ ...s, [`${subjectKey}_${key}`]: val === "" ? undefined : val }));
   };
 
+  // 미응시 상태 확인
+  const isSkipped = getValue("미응시") === true;
+  const toggleSkip = () => {
+    if (isSkipped) {
+      // 미응시 해제
+      setValue("미응시", undefined);
+    } else {
+      // 미응시 설정 - 모든 값 초기화
+      setScore((s) => ({
+        ...s,
+        [`${subjectKey}_미응시`]: true,
+        [`${subjectKey}_선택과목`]: undefined,
+        [`${subjectKey}_원점수`]: undefined,
+        [`${subjectKey}_표준점수`]: undefined,
+        [`${subjectKey}_백분위`]: undefined,
+        [`${subjectKey}_등급`]: undefined,
+      }));
+    }
+  };
+
   // 과목 필터링 (excludeSubject 제외)
   const filteredOptions = subjectOptions?.filter(opt => opt !== excludeSubject);
 
   return (
-    <div className={`bg-white dark:bg-zinc-800 rounded-xl p-4 border-l-4 ${colorMap[color]} shadow-sm`}>
-      <h4 className={`font-semibold mb-3 flex items-center gap-2 ${colorMap[color].split(" ")[1]}`}>
-        {icon} {title}
-      </h4>
-      <div className="grid grid-cols-2 gap-3">
-        {!noSubject && filteredOptions && (
-          <div className={fullWidthSubject ? "col-span-2" : ""}>
-            <label className="text-xs text-zinc-500 mb-1 block">선택과목</label>
-            {grouped ? (
-              <select
-                value={getValue("선택과목")}
-                onChange={(e) => setValue("선택과목", e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg text-sm bg-zinc-50 dark:bg-zinc-700 dark:border-zinc-600"
-              >
-                <option value="">선택하세요</option>
-                <optgroup label="📚 사회탐구">
-                  {사회탐구.filter(s => s !== excludeSubject).map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
-                </optgroup>
-                <optgroup label="🔬 과학탐구">
-                  {과학탐구.filter(s => s !== excludeSubject).map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
-                </optgroup>
-              </select>
-            ) : (
-              <select
-                value={getValue("선택과목")}
-                onChange={(e) => setValue("선택과목", e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg text-sm bg-zinc-50 dark:bg-zinc-700 dark:border-zinc-600"
-              >
-                <option value="">선택하세요</option>
-                {filteredOptions.map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </select>
-            )}
-          </div>
-        )}
-        <div>
-          <label className="text-xs text-zinc-500 mb-1 block">원점수</label>
-          <input
-            type="number"
-            value={getValue("원점수")}
-            onChange={(e) => setValue("원점수", e.target.value ? parseInt(e.target.value) : "")}
-            className="w-full px-3 py-2 border rounded-lg text-sm bg-zinc-50 dark:bg-zinc-700 dark:border-zinc-600"
-            placeholder="예: 88"
-          />
-        </div>
-        {!noStandardScore && (
-          <>
-            <div>
-              <label className="text-xs text-zinc-500 mb-1 block">표준점수</label>
-              <input
-                type="number"
-                value={getValue("표준점수")}
-                onChange={(e) => setValue("표준점수", e.target.value ? parseInt(e.target.value) : "")}
-                className="w-full px-3 py-2 border rounded-lg text-sm bg-zinc-50 dark:bg-zinc-700 dark:border-zinc-600"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-zinc-500 mb-1 block">백분위</label>
-              <input
-                type="number"
-                value={getValue("백분위")}
-                onChange={(e) => setValue("백분위", e.target.value ? parseInt(e.target.value) : "")}
-                className="w-full px-3 py-2 border rounded-lg text-sm bg-zinc-50 dark:bg-zinc-700 dark:border-zinc-600"
-              />
-            </div>
-          </>
-        )}
-        <div>
-          <label className="text-xs text-zinc-500 mb-1 block">등급</label>
-          <input
-            type="number"
-            min="1"
-            max="9"
-            value={getValue("등급")}
-            onChange={(e) => setValue("등급", e.target.value ? parseInt(e.target.value) : "")}
-            className="w-full px-3 py-2 border rounded-lg text-sm bg-zinc-50 dark:bg-zinc-700 dark:border-zinc-600"
-          />
-        </div>
+    <div className={`bg-white dark:bg-zinc-800 rounded-xl p-4 border-l-4 ${colorMap[color]} shadow-sm ${isSkipped ? "opacity-60" : ""}`}>
+      <div className="flex items-center justify-between mb-3">
+        <h4 className={`font-semibold flex items-center gap-2 ${colorMap[color].split(" ")[1]}`}>
+          {icon} {title}
+        </h4>
+        <button
+          onClick={toggleSkip}
+          className={`px-3 py-1 rounded-full text-xs font-medium transition ${
+            isSkipped
+              ? "bg-zinc-500 text-white"
+              : "bg-zinc-100 dark:bg-zinc-700 text-zinc-500"
+          }`}
+        >
+          {isSkipped ? "미응시 ✓" : "미응시"}
+        </button>
       </div>
+
+      {!isSkipped && (
+        <div className="grid grid-cols-2 gap-3">
+          {!noSubject && filteredOptions && (
+            <div className={fullWidthSubject ? "col-span-2" : ""}>
+              <label className="text-xs text-zinc-500 mb-1 block">선택과목</label>
+              {grouped ? (
+                <select
+                  value={getValue("선택과목")}
+                  onChange={(e) => setValue("선택과목", e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-zinc-50 dark:bg-zinc-700 dark:border-zinc-600"
+                >
+                  <option value="">선택하세요</option>
+                  <optgroup label="📚 사회탐구">
+                    {사회탐구.filter(s => s !== excludeSubject).map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="🔬 과학탐구">
+                    {과학탐구.filter(s => s !== excludeSubject).map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </optgroup>
+                </select>
+              ) : (
+                <select
+                  value={getValue("선택과목")}
+                  onChange={(e) => setValue("선택과목", e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-zinc-50 dark:bg-zinc-700 dark:border-zinc-600"
+                >
+                  <option value="">선택하세요</option>
+                  {filteredOptions.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
+          <div>
+            <label className="text-xs text-zinc-500 mb-1 block">원점수</label>
+            <input
+              type="number"
+              value={getValue("원점수")}
+              onChange={(e) => setValue("원점수", e.target.value ? parseInt(e.target.value) : "")}
+              className="w-full px-3 py-2 border rounded-lg text-sm bg-zinc-50 dark:bg-zinc-700 dark:border-zinc-600"
+              placeholder="예: 88"
+            />
+          </div>
+          {!noStandardScore && (
+            <>
+              <div>
+                <label className="text-xs text-zinc-500 mb-1 block">표준점수</label>
+                <input
+                  type="number"
+                  value={getValue("표준점수")}
+                  onChange={(e) => setValue("표준점수", e.target.value ? parseInt(e.target.value) : "")}
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-zinc-50 dark:bg-zinc-700 dark:border-zinc-600"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-zinc-500 mb-1 block">백분위</label>
+                <input
+                  type="number"
+                  value={getValue("백분위")}
+                  onChange={(e) => setValue("백분위", e.target.value ? parseInt(e.target.value) : "")}
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-zinc-50 dark:bg-zinc-700 dark:border-zinc-600"
+                />
+              </div>
+            </>
+          )}
+          <div>
+            <label className="text-xs text-zinc-500 mb-1 block">등급</label>
+            <input
+              type="number"
+              min="1"
+              max="9"
+              value={getValue("등급")}
+              onChange={(e) => setValue("등급", e.target.value ? parseInt(e.target.value) : "")}
+              className="w-full px-3 py-2 border rounded-lg text-sm bg-zinc-50 dark:bg-zinc-700 dark:border-zinc-600"
+            />
+          </div>
+        </div>
+      )}
+
+      {isSkipped && (
+        <p className="text-sm text-zinc-400 text-center py-4">이 과목은 미응시로 처리됩니다</p>
+      )}
     </div>
   );
 }
