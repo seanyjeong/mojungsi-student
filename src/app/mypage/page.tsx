@@ -7,7 +7,7 @@ import { getProfile, updateProfile, getScores, saveScore, withdrawUser, getActiv
 import { ScoreForm } from "@/types";
 import { User, Pencil, Save, Book, Calculator, Globe, Landmark, Search, AlertTriangle, X } from "lucide-react";
 
-const EXAM_TYPES = ["3월모의", "6월모의", "9월모의", "수능"];
+const EXAM_TYPES = ["3월모의고사", "6월모평", "9월모평", "수능"];
 const GRADE_OPTIONS = ["1", "2", "3", "N수"];
 
 const 사회탐구 = ["생활과윤리", "윤리와사상", "한국지리", "세계지리", "동아시아사", "세계사", "정치와법", "경제", "사회문화"];
