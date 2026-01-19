@@ -5,6 +5,7 @@
 
 # 빌드 산물
 /dist
+/.next
 
 # 의존성
 /node_modules
