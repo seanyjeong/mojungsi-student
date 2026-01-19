@@ -24,17 +24,23 @@ interface ScoreTableModalProps {
   onClose: () => void;
 }
 
+const GENDER_OPTIONS = [
+  { value: "남", label: "남자" },
+  { value: "여", label: "여자" },
+];
+
 export default function ScoreTableModal({
   U_ID,
   universityName,
   departmentName,
-  gender,
+  gender: initialGender,
   onClose,
 }: ScoreTableModalProps) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<ScoreTableData | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<string>("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [selectedGender, setSelectedGender] = useState(initialGender || "남");
 
   useEffect(() => {
     const loadData = async () => {
@@ -48,7 +54,7 @@ export default function ScoreTableModal({
           token,
           U_ID,
           activeYear,
-          gender
+          selectedGender
         );
         setData(result);
         if (result.events && result.events.length > 0) {
@@ -62,7 +68,7 @@ export default function ScoreTableModal({
     };
 
     loadData();
-  }, [U_ID, gender]);
+  }, [U_ID, selectedGender]);
 
   // 현재 선택된 종목의 단위 정보
   const currentUnit = data?.units?.[selectedEvent];
@@ -102,6 +108,23 @@ export default function ScoreTableModal({
             </div>
           ) : (
             <div className="space-y-4">
+              {/* 성별 선택 */}
+              <div className="flex gap-2">
+                {GENDER_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setSelectedGender(opt.value)}
+                    className={`flex-1 py-2.5 rounded-xl font-medium transition ${
+                      selectedGender === opt.value
+                        ? "bg-blue-500 text-white"
+                        : "bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
               {/* 종목 선택 드롭다운 */}
               <div className="relative">
                 <button
@@ -140,11 +163,11 @@ export default function ScoreTableModal({
 
               {/* 배점 테이블 */}
               {currentScoreTable.length > 0 ? (
-                <div className="border dark:border-zinc-700 rounded-xl overflow-hidden">
+                <div className="rounded-xl overflow-hidden">
                   {/* 테이블 헤더 */}
-                  <div className="grid grid-cols-2 bg-zinc-100 dark:bg-zinc-700">
-                    <div className="px-4 py-3 font-medium text-center border-r dark:border-zinc-600">
-                      기록 {unitText && <span className="text-zinc-400">({unitText})</span>}
+                  <div className="grid grid-cols-2 bg-zinc-200 dark:bg-zinc-700">
+                    <div className="px-4 py-3 font-medium text-center">
+                      기록 {unitText && <span className="text-zinc-500 dark:text-zinc-400">({unitText})</span>}
                     </div>
                     <div className="px-4 py-3 font-medium text-center">
                       배점
@@ -158,11 +181,11 @@ export default function ScoreTableModal({
                         key={idx}
                         className={`grid grid-cols-2 ${
                           idx % 2 === 0
-                            ? "bg-white dark:bg-zinc-800"
-                            : "bg-zinc-50 dark:bg-zinc-750"
+                            ? "bg-zinc-50 dark:bg-zinc-800"
+                            : "bg-zinc-100 dark:bg-zinc-750"
                         }`}
                       >
-                        <div className="px-4 py-2.5 text-center border-r dark:border-zinc-700">
+                        <div className="px-4 py-2.5 text-center">
                           {row.기록}
                           {unitText && (
                             <span className="text-zinc-400 text-sm ml-0.5">
@@ -170,7 +193,7 @@ export default function ScoreTableModal({
                             </span>
                           )}
                         </div>
-                        <div className="px-4 py-2.5 text-center font-medium">
+                        <div className="px-4 py-2.5 text-center font-medium text-blue-600 dark:text-blue-400">
                           {row.배점}
                         </div>
                       </div>
