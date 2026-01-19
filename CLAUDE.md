@@ -10,35 +10,6 @@
 
 ---
 
-## 내일 할 일 (2026-01-20)
-
-### 1. 실기 종목 단위 확인 (필수)
-사용자가 "ㄱㄱ" 하면 **종목 하나씩 물어보기**:
-- 90개+ 종목 각각 단위 확인 (초/cm/m/회/점)
-- 확인된 종목은 아래 TODO 섹션 목록에서 체크
-
-### 2. DB 테이블 생성
-```sql
-CREATE TABLE practical_event_units (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  event_name VARCHAR(50) NOT NULL UNIQUE,
-  unit VARCHAR(10) NOT NULL,
-  direction ENUM('lower', 'higher') DEFAULT 'higher'
-);
-```
-
-### 3. 단위 데이터 INSERT
-확인된 종목들 INSERT 문 작성 후 실행
-
-### 4. API 수정
-- `api/src/saas/universities/saved-universities.service.ts`
-- 실기 배점표 조회 시 unit 포함하여 반환
-
-### 5. 프론트 수정
-- `src/lib/kakao-share.ts` - 공유 메시지에 단위 표시 (예: 5.21초)
-
----
-
 ## 배포 시 필수 체크
 
 ### 버전업 필요한 파일 (3곳)
@@ -253,64 +224,6 @@ Next.js 15 / TypeScript / Tailwind / Radix UI / lucide-react / @nivo/line
 
 ### v0.4.9
 - 학년별 입시연도 분기 (2학년→2028, 3학년/N수→2027)
-
----
-
-## TODO: 실기 종목 단위 추가
-
-### 목표
-카카오 공유 시 실기 기록에 단위 표시 (예: 5.21초, 285cm, 12.5m)
-
-### DB 변경
-**테이블**: `practical_event_units` (새로 생성)
-```sql
-CREATE TABLE practical_event_units (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  event_name VARCHAR(50) NOT NULL UNIQUE,
-  unit VARCHAR(10) NOT NULL,  -- 초, cm, m, 회, 점 등
-  direction ENUM('lower', 'higher') DEFAULT 'higher'
-);
-```
-
-### 수정 필요한 파일
-| 위치 | 파일 | 수정 내용 |
-|------|------|----------|
-| **API** | `api/src/saas/universities/saved-universities.service.ts` | 실기 배점표 조회 시 unit 포함 |
-| **Web** | `src/lib/kakao-share.ts` | 공유 메시지에 단위 표시 |
-| **Web** | `src/app/my-universities/page.tsx` | 실기 입력 UI에 단위 표시 (선택) |
-
-### 종목별 단위 목록 (확인 필요)
-
-#### 시간 (초)
-- 100m, 100m달리기, 50m달리기, 60m달리기, 80m달리기
-- 10m왕복달리기, 10m반복달리기, 20m왕복달리기, 25m왕복달리기
-- Z런, Z자달리기, 셔틀런, 십자달리기, 지그재그런
-- 20초사이드스텝, 사이드스텝
-- 중량메고달리기, 허들
-
-#### 거리 - cm
-- 제자리멀리뛰기, 제자리세단뛰기
-- 서전트점프, 높이뛰기
-- 좌전굴, 장좌체전굴, 체전굴, 배후굴
-
-#### 거리 - m
-- 메디신볼던지기, 앉아메디신볼던지기
-- 농구공던지기, 핸드볼공던지기
-- 드라이버샷, 아이언샷, 우드샷, 어프로치
-
-#### 횟수 (회)
-- 윗몸일으키기, 턱걸이, 팔굽혀매달리기
-- 농구레이업, 농구골밑슛, 배구, 핸드볼공벽치기
-
-#### 기타/점수 (점)
-- 체조, 핸스 관련 자세 (도입/중간/착지)
-- 농구/배구/축구 스킬테스트
-
-### 작업 순서
-1. 위 종목 목록 확인 (사용자에게 질문)
-2. DB 테이블 생성 + 데이터 INSERT
-3. API 수정 (unit 반환)
-4. 프론트 수정 (카카오 공유에 단위 표시)
 
 ---
 
