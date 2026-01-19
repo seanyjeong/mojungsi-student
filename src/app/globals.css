@@ -57,3 +57,9 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .glass {
+    @apply bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-white/20 dark:border-white/10;
+  }
+}

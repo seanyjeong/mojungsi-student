@@ -7,7 +7,7 @@ export function Header() {
   const { user, isLoading, isLoggedIn, login, logout } = useAuth();
 
   return (
-    <header className="bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 sticky top-0 z-10">
+    <header className="glass sticky top-0 z-10">
       <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
         <h1 className="text-lg font-bold text-zinc-900 dark:text-white">
           정시 환산점수 계산기

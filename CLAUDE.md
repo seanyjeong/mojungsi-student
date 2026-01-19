@@ -1,4 +1,4 @@
-# 학생용 Web (v0.4.24)
+# 학생용 Web (v0.4.25)
 
 > **전체 프로젝트 명세**: `../docs/` 참조
 > - `../docs/API.md` - 백엔드 API
@@ -193,6 +193,12 @@ Next.js 15 / TypeScript / Tailwind / Radix UI / lucide-react / @nivo/line
 ---
 
 ## 변경 이력
+
+### v0.4.25 (2026-01-19)
+- **Glass morphism 적용**
+  - Header: 반투명 배경 + backdrop-blur
+  - Bottom Nav: 반투명 배경 + backdrop-blur
+  - UX 변경 없이 시각적 효과만 추가
 
 ### v0.4.24 (2026-01-19)
 - **배점표 조회 모달 추가**
