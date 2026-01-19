@@ -159,13 +159,20 @@ let JungsiAdminController = class JungsiAdminController {
         const results = await this.adminService.bulkUpdateHighestScores(year, mohyung, body.scores);
         return { success: true, message: '최고표점이 수정되었습니다.', count: results.length };
     }
-    async getInquiryConv(U_ID, year) {
-        const conv = await this.adminService.getInquiryConv(U_ID, year);
-        return { success: true, data: conv };
+    async getInquiryConv(U_ID, year, exam_type = '수능') {
+        const conv = await this.adminService.getInquiryConv(U_ID, year, exam_type);
+        const availableTypes = await this.adminService.getAvailableExamTypes(U_ID, year);
+        return { success: true, data: conv, availableExamTypes: availableTypes };
     }
     async updateInquiryConv(U_ID, year, body) {
-        const result = await this.adminService.updateInquiryConv(U_ID, year, body.track, body.scores);
-        return { success: true, message: `${body.track} 변환표준점수가 수정되었습니다.` };
+        const exam_type = body.exam_type || '수능';
+        const result = await this.adminService.updateInquiryConv(U_ID, year, exam_type, body.track, body.scores);
+        return { success: true, message: `${exam_type} ${body.track} 변환표준점수가 수정되었습니다.` };
+    }
+    // 변환표 복사 (수능 → 다른 모의고사)
+    async copyInquiryConv(U_ID, year, body) {
+        const result = await this.adminService.copyInquiryConv(U_ID, year, body.from, body.to);
+        return { success: true, message: `${body.from} → ${body.to} 복사 완료`, count: result.count };
     }
     // 변환표 있는 학교 목록
     async getUniversitiesWithInquiryConv(year) {
@@ -423,18 +430,20 @@ __decorate([
 ], JungsiAdminController.prototype, "bulkUpdateHighestScores", null);
 __decorate([
     (0, common_1.Get)('inquiry-conv/:U_ID'),
-    (0, swagger_1.ApiOperation)({ summary: '변환표준점수 테이블 조회' }),
+    (0, swagger_1.ApiOperation)({ summary: '변환표준점수 테이블 조회 (모의고사별)' }),
     (0, swagger_1.ApiParam)({ name: 'U_ID', type: Number }),
     (0, swagger_1.ApiQuery)({ name: 'year', type: Number }),
+    (0, swagger_1.ApiQuery)({ name: 'exam_type', type: String, required: false, description: '3월모의고사/6월모평/9월모평/수능 (기본: 수능)' }),
     __param(0, (0, common_1.Param)('U_ID', common_1.ParseIntPipe)),
     __param(1, (0, common_1.Query)('year', common_1.ParseIntPipe)),
+    __param(2, (0, common_1.Query)('exam_type')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, Number]),
+    __metadata("design:paramtypes", [Number, Number, String]),
     __metadata("design:returntype", Promise)
 ], JungsiAdminController.prototype, "getInquiryConv", null);
 __decorate([
     (0, common_1.Put)('inquiry-conv/:U_ID'),
-    (0, swagger_1.ApiOperation)({ summary: '변환표준점수 수정' }),
+    (0, swagger_1.ApiOperation)({ summary: '변환표준점수 수정 (모의고사별)' }),
     (0, swagger_1.ApiParam)({ name: 'U_ID', type: Number }),
     (0, swagger_1.ApiQuery)({ name: 'year', type: Number }),
     (0, swagger_1.ApiBody)({ type: InquiryConvDto }),
@@ -445,6 +454,18 @@ __decorate([
     __metadata("design:paramtypes", [Number, Number, InquiryConvDto]),
     __metadata("design:returntype", Promise)
 ], JungsiAdminController.prototype, "updateInquiryConv", null);
+__decorate([
+    (0, common_1.Post)('inquiry-conv/:U_ID/copy'),
+    (0, swagger_1.ApiOperation)({ summary: '변환표 복사 (수능 → 다른 모의고사)' }),
+    (0, swagger_1.ApiParam)({ name: 'U_ID', type: Number }),
+    (0, swagger_1.ApiQuery)({ name: 'year', type: Number }),
+    __param(0, (0, common_1.Param)('U_ID', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Query)('year', common_1.ParseIntPipe)),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Number, Object]),
+    __metadata("design:returntype", Promise)
+], JungsiAdminController.prototype, "copyInquiryConv", null);
 __decorate([
     (0, common_1.Get)('inquiry-conv-list'),
     (0, swagger_1.ApiOperation)({ summary: '변환표 있는 학교 목록' }),

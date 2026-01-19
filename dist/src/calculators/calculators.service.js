@@ -24,6 +24,20 @@ const safeParse = (v, fb = null) => {
         return fb;
     }
 };
+// exam_type Fallback 순서: 요청값 → 수능 → 9월모평 → 6월모평 → 3월모의고사
+const EXAM_TYPE_FALLBACK_ORDER = ['수능', '9월모평', '6월모평', '3월모의고사'];
+const getExamTypeFallbackOrder = (requestedExamType) => {
+    const order = [];
+    if (requestedExamType && requestedExamType !== '수능') {
+        order.push(requestedExamType);
+    }
+    for (const et of EXAM_TYPE_FALLBACK_ORDER) {
+        if (!order.includes(et)) {
+            order.push(et);
+        }
+    }
+    return order;
+};
 const pickByType = (row, type) => {
     if (!row)
         return 0;
@@ -775,14 +789,27 @@ let CalculatorsService = class CalculatorsService {
         if (!ratio) {
             throw new Error(`반영비율 정보를 찾을 수 없습니다: U_ID=${U_ID}, year=${year}`);
         }
-        const convRows = await this.prisma.jungsi_inquiry_conv.findMany({
-            where: { U_ID, year },
-        });
+        // 변환표 조회 (Fallback: basis_exam → 수능 → 9월모평 → 6월모평 → 3월모의고사)
+        const requestedExamType = basis_exam || '수능';
         const convMap = { '사탐': {}, '과탐': {} };
-        convRows.forEach(r => {
-            const trackKey = r.track === '사탐' ? '사탐' : '과탐';
-            convMap[trackKey][String(r.percentile)] = this.toNumber(r.converted_std_score);
-        });
+        let usedExamType = null;
+        const fallbackOrder = getExamTypeFallbackOrder(requestedExamType);
+        for (const et of fallbackOrder) {
+            const convRows = await this.prisma.jungsi_inquiry_conv.findMany({
+                where: { U_ID, year, exam_type: et },
+            });
+            if (convRows.length > 0) {
+                convRows.forEach(r => {
+                    const trackKey = r.track === '사탐' ? '사탐' : '과탐';
+                    convMap[trackKey][String(r.percentile)] = this.toNumber(r.converted_std_score);
+                });
+                usedExamType = et;
+                if (et !== requestedExamType) {
+                    console.log(`[변환표 Fallback] ${requestedExamType} 없음 → ${et} 사용 (U_ID=${U_ID}, year=${year})`);
+                }
+                break;
+            }
+        }
         const formulaData = this.buildFormulaData(basic, ratio, convMap);
         const cfg = safeParse(ratio.score_config, {}) || {};
         const mustLoadYearMax = cfg?.korean_math?.max_score_method === 'highest_of_year' ||
@@ -832,14 +859,21 @@ let CalculatorsService = class CalculatorsService {
                 });
                 if (!ratio)
                     continue;
-                const convRows = await this.prisma.jungsi_inquiry_conv.findMany({
-                    where: { U_ID, year },
-                });
+                // 변환표 조회 (Fallback: 수능 → 9월모평 → 6월모평 → 3월모의고사)
                 const convMap = { '사탐': {}, '과탐': {} };
-                convRows.forEach(r => {
-                    const trackKey = r.track === '사탐' ? '사탐' : '과탐';
-                    convMap[trackKey][String(r.percentile)] = this.toNumber(r.converted_std_score);
-                });
+                const fallbackOrder = getExamTypeFallbackOrder('수능');
+                for (const et of fallbackOrder) {
+                    const convRows = await this.prisma.jungsi_inquiry_conv.findMany({
+                        where: { U_ID, year, exam_type: et },
+                    });
+                    if (convRows.length > 0) {
+                        convRows.forEach(r => {
+                            const trackKey = r.track === '사탐' ? '사탐' : '과탐';
+                            convMap[trackKey][String(r.percentile)] = this.toNumber(r.converted_std_score);
+                        });
+                        break;
+                    }
+                }
                 const formulaData = this.buildFormulaData(basic, ratio, convMap);
                 const result = calculateScoreWithConv(formulaData, studentScores, convMap, null, highestMap);
                 results.push({
@@ -942,14 +976,24 @@ let CalculatorsService = class CalculatorsService {
         };
     }
     async loadHighestMap(year, exam_type) {
-        const rows = await this.prisma.jungsi_highest_scores.findMany({
-            where: { year, exam_type },
-        });
-        const map = {};
-        for (const row of rows) {
-            map[row.subject_name] = this.toNumber(row.max_score);
+        // Fallback 순서로 최고표점 조회
+        const fallbackOrder = getExamTypeFallbackOrder(exam_type);
+        for (const et of fallbackOrder) {
+            const rows = await this.prisma.jungsi_highest_scores.findMany({
+                where: { year, exam_type: et },
+            });
+            if (rows.length > 0) {
+                const map = {};
+                for (const row of rows) {
+                    map[row.subject_name] = this.toNumber(row.max_score);
+                }
+                if (et !== exam_type) {
+                    console.log(`[최고표점 Fallback] ${exam_type} 없음 → ${et} 사용 (year=${year})`);
+                }
+                return map;
+            }
         }
-        return map;
+        return {};
     }
     toNumber(value) {
         if (value === null || value === undefined)

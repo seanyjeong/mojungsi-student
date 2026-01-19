@@ -235,12 +235,13 @@ model jungsi_inquiry_conv {
   id                  Int       @id @default(autoincrement())
   U_ID                Int
   year                Int       @map("학년도")
-  track               String    @map("계열") @db.VarChar(10)
+  exam_type           String    @default("수능") @map("모형") @db.VarChar(10) // "3월모의고사", "6월모평", "9월모평", "수능"
+  track               String    @map("계열") @db.VarChar(10) // "사탐", "과탐"
   percentile          Int       @map("백분위")
   converted_std_score Decimal   @map("변환표준점수") @db.Decimal(6, 2)
   updated_at          DateTime? @db.Timestamp(0)
 
-  @@unique([U_ID, year, track, percentile], map: "uk_uid_year_track_pct")
+  @@unique([U_ID, year, exam_type, track, percentile], map: "uk_uid_year_exam_track_pct")
   @@index([U_ID], map: "idx_uid")
 }
 

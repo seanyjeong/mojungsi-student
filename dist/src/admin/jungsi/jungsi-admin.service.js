@@ -227,9 +227,9 @@ let JungsiAdminService = class JungsiAdminService {
         }
         return results;
     }
-    async getInquiryConv(U_ID, year) {
+    async getInquiryConv(U_ID, year, exam_type = '수능') {
         const convs = await this.prisma.jungsi_inquiry_conv.findMany({
-            where: { U_ID, year },
+            where: { U_ID, year, exam_type },
             orderBy: [{ track: 'asc' }, { percentile: 'desc' }],
         });
         const 사탐 = {};
@@ -238,18 +238,49 @@ let JungsiAdminService = class JungsiAdminService {
             const target = c.track === '사탐' ? 사탐 : 과탐;
             target[c.percentile] = Number(c.converted_std_score);
         }
-        return { U_ID, year, 사탐, 과탐 };
+        return { U_ID, year, exam_type, 사탐, 과탐 };
     }
-    async updateInquiryConv(U_ID, year, track, scores) {
+    // 특정 모의고사 변환표 존재 여부 확인
+    async getAvailableExamTypes(U_ID, year) {
+        const result = await this.prisma.jungsi_inquiry_conv.groupBy({
+            by: ['exam_type'],
+            where: { U_ID, year },
+        });
+        return result.map(r => r.exam_type);
+    }
+    async updateInquiryConv(U_ID, year, exam_type, track, scores) {
         await this.prisma.jungsi_inquiry_conv.deleteMany({
-            where: { U_ID, year, track },
+            where: { U_ID, year, exam_type, track },
         });
         const data = Object.entries(scores).map(([pct, conv]) => ({
             U_ID,
             year,
+            exam_type,
             track,
             percentile: Number(pct),
             converted_std_score: conv,
+        }));
+        return this.prisma.jungsi_inquiry_conv.createMany({ data });
+    }
+    // 수능 → 다른 모의고사로 변환표 복사
+    async copyInquiryConv(U_ID, year, fromExamType, toExamType) {
+        const existing = await this.prisma.jungsi_inquiry_conv.findMany({
+            where: { U_ID, year, exam_type: fromExamType },
+        });
+        if (existing.length === 0) {
+            throw new Error(`복사할 변환표가 없습니다: ${fromExamType}`);
+        }
+        // 대상 삭제 후 복사
+        await this.prisma.jungsi_inquiry_conv.deleteMany({
+            where: { U_ID, year, exam_type: toExamType },
+        });
+        const data = existing.map(r => ({
+            U_ID: r.U_ID,
+            year: r.year,
+            exam_type: toExamType,
+            track: r.track,
+            percentile: r.percentile,
+            converted_std_score: r.converted_std_score,
         }));
         return this.prisma.jungsi_inquiry_conv.createMany({ data });
     }
