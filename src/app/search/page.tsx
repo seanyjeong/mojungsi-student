@@ -61,6 +61,13 @@ interface SubjectDisplay {
   inquiry_count?: string;
 }
 
+interface SelectionRule {
+  type?: string;
+  from?: string[];
+  count?: number;
+  weights?: number[];
+}
+
 interface University {
   U_ID: number;
   U_NM: string;
@@ -74,6 +81,25 @@ interface University {
   실기반영비율: number;
   subjectDisplay?: SubjectDisplay;
   isWomensUniv?: boolean;
+  selectionRules?: SelectionRule | SelectionRule[] | null;
+}
+
+// 택N 계산 함수
+function getTakN(selectionRules: SelectionRule | SelectionRule[] | null | undefined): number | null {
+  if (!selectionRules) return null;
+
+  const rules = Array.isArray(selectionRules) ? selectionRules : [selectionRules];
+  let totalN = 0;
+
+  for (const rule of rules) {
+    if (rule.type === 'select_n' && rule.count) {
+      totalN += rule.count;
+    } else if (rule.type === 'select_ranked_weights' && rule.weights) {
+      totalN += rule.weights.length;
+    }
+  }
+
+  return totalN > 0 ? totalN : null;
 }
 
 // API 응답을 플랫 구조로 변환
@@ -255,16 +281,20 @@ export default function SearchPage() {
         try {
           const response = await calculateAll(scores, userYear);
           // 대학명+학과명으로 매칭 (U_ID가 다른 테이블이라 불일치)
-          const scoreMap = new Map(
+          const resultMap = new Map(
             response.results.map((r: any) => [
               `${r.university?.univName}_${r.university?.deptName}`,
-              r.finalScore,
+              { finalScore: r.finalScore, selectionRules: r.selectionRules },
             ])
           );
-          calculated = data.map((u: University) => ({
-            ...u,
-            calculatedScore: scoreMap.get(`${u.U_NM}_${u.D_NM}`),
-          }));
+          calculated = data.map((u: University) => {
+            const result = resultMap.get(`${u.U_NM}_${u.D_NM}`);
+            return {
+              ...u,
+              calculatedScore: result?.finalScore,
+              selectionRules: result?.selectionRules,
+            };
+          });
         } catch (err) {
           console.error("Calculation error:", err);
         }
@@ -735,10 +765,15 @@ const UniversityCard = memo(function UniversityCard({
                 <SubjectRatioCell label="한국사" value={univ.subjectDisplay.history} />
               </div>
               <div className="flex flex-wrap gap-2 mt-2 text-[10px]">
-                <span className="flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-orange-400"></span>
-                  <span className="text-zinc-500">선택반영 (택1)</span>
-                </span>
+                {(() => {
+                  const takN = getTakN(univ.selectionRules);
+                  return takN ? (
+                    <span className="flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-orange-400"></span>
+                      <span className="text-zinc-500">선택반영 (택{takN})</span>
+                    </span>
+                  ) : null;
+                })()}
                 <span className="flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-zinc-400"></span>
                   <span className="text-zinc-500">고정반영</span>

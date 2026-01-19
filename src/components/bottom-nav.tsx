@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Home, Search, Heart, Dumbbell, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const APP_VERSION = "1.0.0";
+const APP_VERSION = "1.0.1";
 
 export function BottomNav() {
   const pathname = usePathname();
