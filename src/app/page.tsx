@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, getToken } from "@/lib/auth";
 import { getScores, getActiveYear, getLatestNotices, markNoticeAsRead, Notice } from "@/lib/api";
-import { Search, Heart, Dumbbell, User, Bell, X, AlertTriangle, Sparkles } from "lucide-react";
+import { Search, Heart, Dumbbell, User, Bell, X, AlertTriangle, Sparkles, ClipboardList } from "lucide-react";
 import Link from "next/link";
 
 const typeStyles = {
@@ -189,18 +189,22 @@ export default function HomePage() {
 
       {/* Quick Info */}
       <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-4 text-sm text-zinc-600 dark:text-zinc-400">
-        <p className="font-medium mb-2">📋 이용 안내</p>
+        <p className="font-medium mb-2 flex items-center gap-1.5">
+          <ClipboardList className="w-4 h-4 text-blue-500" /> 이용 안내
+        </p>
         <ul className="space-y-1.5 text-xs">
           <li><span className="font-medium text-blue-600">1.</span> 내 정보에서 모의고사/수능 성적을 입력하세요</li>
           <li><span className="font-medium text-blue-600">2.</span> 대학 검색에서 환산점수를 확인하세요</li>
           <li><span className="font-medium text-blue-600">3.</span> 관심 대학은 하트를 눌러 저장하세요</li>
         </ul>
 
-        <p className="font-medium mt-4 mb-2">🏃 실기 관리 사용법</p>
+        <p className="font-medium mt-4 mb-2 flex items-center gap-1.5">
+          <Dumbbell className="w-4 h-4 text-purple-500" /> 실기 관리 사용법
+        </p>
         <ul className="space-y-1.5 text-xs">
           <li><span className="font-medium text-purple-600">1.</span> 실기관리 → <span className="font-medium">종목 설정</span> 탭에서 관리할 종목 추가</li>
           <li><span className="font-medium text-purple-600">2.</span> <span className="font-medium">기록 관리</span> 탭에서 날짜별 기록 입력</li>
-          <li><span className="font-medium text-purple-600">3.</span> <span className="font-medium">성장 그래프</span>에서 실력 변화 확인</li>
+          <li><span className="font-medium text-purple-600">3.</span> <span className="font-medium">성장 그래프</span>에서 기록 변화 확인</li>
         </ul>
       </div>
 

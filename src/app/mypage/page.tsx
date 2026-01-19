@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth, getToken } from "@/lib/auth";
 import { getProfile, updateProfile, getScores, saveScore, withdrawUser, getActiveYear } from "@/lib/api";
 import { ScoreForm } from "@/types";
-import { User, Pencil, Save, Book, Calculator, Globe, Landmark, Search, AlertTriangle, X } from "lucide-react";
+import { User, Pencil, Save, Book, Calculator, Globe, Landmark, Search, AlertTriangle, X, CheckCircle, XCircle, Hand } from "lucide-react";
 
 // DB 저장값과 화면 표시 라벨 매핑
 const EXAM_TYPES = [
@@ -353,12 +353,17 @@ export default function MyPage() {
 
       {/* Toast Notification */}
       {message && (
-        <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-xl shadow-2xl text-base font-semibold transform transition-all duration-300 ${
+        <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-xl shadow-2xl text-base font-semibold transform transition-all duration-300 flex items-center gap-2 ${
           message.includes("✅")
             ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white"
             : "bg-gradient-to-r from-red-500 to-rose-500 text-white"
         }`}>
-          {message}
+          {message.includes("✅") ? (
+            <CheckCircle className="w-5 h-5" />
+          ) : (
+            <XCircle className="w-5 h-5" />
+          )}
+          {message.replace(/✅|❌/g, "").trim()}
         </div>
       )}
 
@@ -467,7 +472,9 @@ export default function MyPage() {
 
             {/* 계산에 사용할 시험 선택 */}
             <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-700">
-              <p className="text-sm text-zinc-500 mb-3">🧮 계산에 사용할 시험</p>
+              <p className="text-sm text-zinc-500 mb-3 flex items-center gap-1.5">
+                <Calculator className="w-4 h-4" /> 계산에 사용할 시험
+              </p>
               <div className="grid grid-cols-4 gap-2">
                 {EXAM_TYPES.map((exam) => (
                   <button
@@ -571,7 +578,9 @@ export default function MyPage() {
       {showProfileModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-zinc-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-bold mb-2">환영합니다! 👋</h3>
+            <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
+              환영합니다! <Hand className="w-5 h-5 text-yellow-500" />
+            </h3>
             <p className="text-sm text-zinc-500 mb-6">
               서비스 이용을 위해 아래 정보를 입력해주세요.
             </p>
