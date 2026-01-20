@@ -613,99 +613,99 @@ export default function MyPage() {
             </div>
           </div>
 
-          {/* Exam Type Selector with Mode Indicator */}
+          {/* 활성 시험 정보 */}
           <div className="bg-white dark:bg-zinc-800 rounded-xl p-4 shadow-sm">
-            <p className="text-sm text-zinc-500 mb-3">성적 입력할 시험 선택</p>
-            <div className="grid grid-cols-4 gap-2">
-              {EXAM_TYPES.map((exam) => {
-                const examMode = getExamMode(exam.value);
-                const isActive = activeExamInfo?.examType === exam.value;
-                const editCounts = getEditCountDisplay(exam.value);
-
-                return (
-                  <button
-                    key={exam.value}
-                    onClick={() => {
-                      setSelectedExam(exam.value);
-                      if (examMode) {
-                        setInputMode(examMode);
-                      }
-                    }}
-                    className={`relative px-3 py-2 rounded-xl text-sm font-medium transition ${
-                      selectedExam === exam.value
-                        ? "bg-blue-500 text-white"
-                        : "bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400"
-                    }`}
-                  >
-                    <span>{exam.label}</span>
-                    {isActive && (
-                      <span className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full ${
-                        examMode === "gachaejeom" ? "bg-amber-400" : "bg-green-400"
-                      }`} />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* 모드 표시 및 전환 */}
-            {isActiveExam && activeExamInfo?.mode && (
-              <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-700">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm text-zinc-500">입력 모드</p>
-                  <div className="flex items-center gap-2">
+            {/* 디버깅 모드 (관리자 강제 설정): 모든 시험 탭 표시 */}
+            {activeExamInfo?.isForced && (
+              <>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xs px-2 py-0.5 bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 rounded">
+                    DEBUG
+                  </span>
+                  <span className="text-xs text-zinc-400">관리자 강제 설정 모드</span>
+                </div>
+                <div className="grid grid-cols-4 gap-2 mb-4">
+                  {EXAM_TYPES.map((exam) => (
                     <button
-                      onClick={() => setInputMode("gachaejeom")}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                        inputMode === "gachaejeom"
-                          ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                          : "bg-zinc-100 dark:bg-zinc-700 text-zinc-500"
+                      key={exam.value}
+                      onClick={() => setSelectedExam(exam.value)}
+                      className={`px-3 py-2 rounded-xl text-sm font-medium transition ${
+                        selectedExam === exam.value
+                          ? "bg-blue-500 text-white"
+                          : "bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400"
                       }`}
                     >
-                      <Zap className="w-3.5 h-3.5" />
-                      가채점
+                      {exam.label}
                     </button>
-                    <button
-                      onClick={() => setInputMode("seongjeokpyo")}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                        inputMode === "seongjeokpyo"
-                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                          : "bg-zinc-100 dark:bg-zinc-700 text-zinc-500"
-                      }`}
-                    >
-                      <FileText className="w-3.5 h-3.5" />
-                      성적표
-                    </button>
-                  </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* 현재 활성 시험 헤더 */}
+            {activeExamInfo?.examType ? (
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                    {selectedExam}
+                  </span>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    inputMode === "gachaejeom"
+                      ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                      : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                  }`}>
+                    {inputMode === "gachaejeom" ? "가채점" : "성적표"}
+                  </span>
                 </div>
 
-                {/* 수정 횟수 표시 */}
-                {(() => {
-                  const counts = getEditCountDisplay(selectedExam);
-                  if (!counts) return null;
-                  const currentCount = inputMode === "gachaejeom" ? counts.gachaejeom : counts.seongjeokpyo;
-                  const remaining = 2 - currentCount;
-                  return (
-                    <p className={`text-xs ${remaining <= 0 ? "text-red-500" : "text-zinc-400"}`}>
-                      {inputMode === "gachaejeom" ? "가채점" : "성적표"} 수정 가능 횟수: {remaining}회 남음
-                    </p>
-                  );
-                })()}
+                {/* 모드 전환 버튼 */}
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setInputMode("gachaejeom")}
+                    className={`p-2 rounded-lg transition ${
+                      inputMode === "gachaejeom"
+                        ? "bg-amber-100 text-amber-600 dark:bg-amber-900/30"
+                        : "text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                    }`}
+                    title="가채점 모드"
+                  >
+                    <Zap className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setInputMode("seongjeokpyo")}
+                    className={`p-2 rounded-lg transition ${
+                      inputMode === "seongjeokpyo"
+                        ? "bg-green-100 text-green-600 dark:bg-green-900/30"
+                        : "text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                    }`}
+                    title="성적표 모드"
+                  >
+                    <FileText className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-4 text-zinc-500">
+                <p>아직 시험 기간이 아닙니다</p>
+                <p className="text-sm mt-1">첫 시험: {activeExamInfo?.examDate ? new Date(activeExamInfo.examDate).toLocaleDateString('ko-KR') : '-'}</p>
               </div>
             )}
 
-            {/* 성적표 미입력 안내 */}
-            {!isActiveExam && activeExamInfo?.mode === "seongjeokpyo" && !scores[selectedExam] && (
-              <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-700">
-                <p className="text-sm text-amber-600 dark:text-amber-400 flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4" />
-                  성적표를 입력하세요
+            {/* 수정 횟수 표시 */}
+            {activeExamInfo?.examType && (() => {
+              const counts = getEditCountDisplay(selectedExam);
+              if (!counts) return null;
+              const currentCount = inputMode === "gachaejeom" ? counts.gachaejeom : counts.seongjeokpyo;
+              const remaining = 2 - currentCount;
+              return (
+                <p className={`text-xs mb-4 ${remaining <= 0 ? "text-red-500" : "text-zinc-400"}`}>
+                  수정 가능 횟수: {remaining}회 남음
                 </p>
-              </div>
-            )}
+              );
+            })()}
 
             {/* 계산에 사용할 시험 선택 */}
-            <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-700">
+            <div className="pt-4 border-t border-zinc-100 dark:border-zinc-700">
               <p className="text-sm text-zinc-500 mb-3 flex items-center gap-1.5">
                 <Calculator className="w-4 h-4" /> 계산에 사용할 시험
               </p>
@@ -714,18 +714,21 @@ export default function MyPage() {
                   <button
                     key={exam.value}
                     onClick={() => handleSetCalcExam(exam.value)}
+                    disabled={!scores[exam.value]}
                     className={`px-3 py-2 rounded-full text-sm font-medium transition ${
                       calcExam === exam.value
                         ? "bg-green-500 text-white"
-                        : "bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400"
+                        : scores[exam.value]
+                          ? "bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400"
+                          : "bg-zinc-50 dark:bg-zinc-800 text-zinc-300 dark:text-zinc-600 cursor-not-allowed"
                     }`}
                   >
-                    {exam.label} {calcExam === exam.value && <span className="ml-0.5">&#10003;</span>}
+                    {exam.label} {calcExam === exam.value && <span className="ml-0.5">✓</span>}
                   </button>
                 ))}
               </div>
               <p className="text-xs text-zinc-400 mt-2">
-                대학검색에서 {EXAM_TYPES.find(e => e.value === calcExam)?.label || calcExam} 성적으로 계산
+                대학검색에서 {calcExam} 성적으로 계산
               </p>
             </div>
           </div>
