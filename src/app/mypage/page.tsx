@@ -7,28 +7,13 @@ import { getProfile, updateProfile, getScores, saveScore, withdrawUser, getActiv
 import { ScoreForm } from "@/types";
 import { User, Pencil, Save, Book, Calculator, Globe, Landmark, Search, AlertTriangle, X, CheckCircle, XCircle, Hand, Info, Zap, FileText, RefreshCw } from "lucide-react";
 
-// DB 저장값과 화면 표시 라벨 매핑
+// DB 저장값과 화면 표시 라벨 매핑 (통일됨)
 const EXAM_TYPES = [
-  { value: "3월모의고사", label: "3월", short: "3월" },
-  { value: "6월모평", label: "6월", short: "6월" },
-  { value: "9월모평", label: "9월", short: "9월" },
-  { value: "수능", label: "수능", short: "수능" },
+  { value: "3월", label: "3월" },
+  { value: "6월", label: "6월" },
+  { value: "9월", label: "9월" },
+  { value: "수능", label: "수능" },
 ];
-
-// API exam_type 변환
-const EXAM_TYPE_MAP: Record<string, string> = {
-  "3월": "3월모의고사",
-  "6월": "6월모평",
-  "9월": "9월모평",
-  "수능": "수능",
-};
-
-const REVERSE_EXAM_TYPE_MAP: Record<string, string> = {
-  "3월모의고사": "3월",
-  "6월모평": "6월",
-  "9월모평": "9월",
-  "수능": "수능",
-};
 
 const GRADE_OPTIONS = ["1", "2", "3", "N수"];
 
@@ -156,12 +141,9 @@ export default function MyPage() {
   // 활성 시험 정보가 로드되면 선택된 시험 및 모드 업데이트
   useEffect(() => {
     if (activeExamInfo?.examType) {
-      const examValue = EXAM_TYPE_MAP[activeExamInfo.examType];
-      if (examValue) {
-        setSelectedExam(examValue);
-        if (activeExamInfo.mode) {
-          setInputMode(activeExamInfo.mode);
-        }
+      setSelectedExam(activeExamInfo.examType);
+      if (activeExamInfo.mode) {
+        setInputMode(activeExamInfo.mode);
       }
     }
   }, [activeExamInfo]);
@@ -261,8 +243,7 @@ export default function MyPage() {
       setIsInterpolating(true);
       try {
         const activeYear = await getActiveYear();
-        const examType = REVERSE_EXAM_TYPE_MAP[selectedExam] || "수능";
-        const result = await interpolateScores(examType, rawScores, activeYear);
+        const result = await interpolateScores(selectedExam, rawScores, activeYear);
         setEstimatedScores(result);
       } catch (err) {
         console.error("Interpolation failed:", err);
@@ -396,8 +377,7 @@ export default function MyPage() {
       if (inputMode === "gachaejeom") {
         // 가채점 저장
         const rawScores = buildRawScoresPayload(currentScore);
-        const examType = REVERSE_EXAM_TYPE_MAP[selectedExam] || "수능";
-        await saveGachaejeomScore(token, examType, rawScores, activeYear);
+        await saveGachaejeomScore(token, selectedExam, rawScores, activeYear);
       } else {
         // 성적표 저장
         await saveScore(token, selectedExam, currentScore, activeYear);
@@ -439,15 +419,13 @@ export default function MyPage() {
   // 현재 시험이 활성 시험인지 확인
   const isActiveExam = useMemo(() => {
     if (!activeExamInfo?.examType) return false;
-    const activeExamValue = EXAM_TYPE_MAP[activeExamInfo.examType];
-    return selectedExam === activeExamValue;
+    return selectedExam === activeExamInfo.examType;
   }, [activeExamInfo, selectedExam]);
 
   // 해당 시험의 모드 가져오기
   const getExamMode = useCallback((examValue: string): "gachaejeom" | "seongjeokpyo" | null => {
     if (!activeExamInfo?.examType) return null;
-    const activeExamValue = EXAM_TYPE_MAP[activeExamInfo.examType];
-    if (examValue === activeExamValue) {
+    if (examValue === activeExamInfo.examType) {
       return activeExamInfo.mode;
     }
     // 활성 시험이 아니면 성적표 모드
@@ -641,7 +619,7 @@ export default function MyPage() {
             <div className="grid grid-cols-4 gap-2">
               {EXAM_TYPES.map((exam) => {
                 const examMode = getExamMode(exam.value);
-                const isActive = activeExamInfo?.examType === REVERSE_EXAM_TYPE_MAP[exam.value];
+                const isActive = activeExamInfo?.examType === exam.value;
                 const editCounts = getEditCountDisplay(exam.value);
 
                 return (
