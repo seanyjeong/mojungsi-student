@@ -60,7 +60,7 @@ interface PracticalScoreData {
 
 interface SavedScore {
   id: number;
-  examType: string;
+  exam_type: string;
   scores: ScoreForm;
   year: number;
 }
@@ -118,13 +118,13 @@ export default function MyUniversitiesPage() {
       // 수능 → 9월 → 6월 → 3월 순으로 우선순위
       const priority: ExamType[] = ["수능", "9월", "6월", "3월"];
       for (const exam of priority) {
-        if (savedScores.some(s => s.examType === exam)) {
+        if (savedScores.some(s => s.exam_type === exam)) {
           setSelectedExam(exam);
           return;
         }
       }
       // 우선순위에 없으면 첫 번째 성적 사용
-      const firstExam = savedScores[0]?.examType as ExamType;
+      const firstExam = savedScores[0]?.exam_type as ExamType;
       if (firstExam && EXAM_TYPES.includes(firstExam)) {
         setSelectedExam(firstExam);
       }
@@ -134,7 +134,7 @@ export default function MyUniversitiesPage() {
   // 선택한 시험의 성적이 있는지 확인
   const selectedExamScore = useMemo(() => {
     if (!selectedExam) return null;
-    return savedScores.find(s => s.examType === selectedExam)?.scores || null;
+    return savedScores.find(s => s.exam_type === selectedExam)?.scores || null;
   }, [savedScores, selectedExam]);
 
   // 시험 선택 또는 대학 목록이 변경될 때 점수 계산
@@ -213,7 +213,7 @@ export default function MyUniversitiesPage() {
     setSelectedExam(examType);
 
     // 해당 시험의 점수가 아직 계산되지 않았고 성적이 있으면 계산
-    const examScore = savedScores.find(s => s.examType === examType)?.scores;
+    const examScore = savedScores.find(s => s.exam_type === examType)?.scores;
     if (examScore && !calculatedScores[examType]) {
       calculateScoresForExam(examType, examScore);
     }
@@ -257,8 +257,8 @@ export default function MyUniversitiesPage() {
       "수능": false,
     };
     savedScores.forEach(s => {
-      if (EXAM_TYPES.includes(s.examType as ExamType)) {
-        result[s.examType as ExamType] = true;
+      if (EXAM_TYPES.includes(s.exam_type as ExamType)) {
+        result[s.exam_type as ExamType] = true;
       }
     });
     return result;
