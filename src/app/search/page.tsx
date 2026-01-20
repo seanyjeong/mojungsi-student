@@ -5,6 +5,7 @@ import { useAuth, getToken, useRequireProfile } from "@/lib/auth";
 import { getUniversities, calculateAll, toggleSaveUniversity, getSavedUniversities, getProfile, getScores, getActiveYear } from "@/lib/api";
 import { ScoreForm } from "@/types";
 import { Heart, Filter, MapPin, Users, TrendingUp, ChevronDown, ChevronUp, Info, AlertCircle } from "lucide-react";
+import UniversityLogo from "@/components/UniversityLogo";
 
 // 초성 추출 함수
 function getChosung(str: string): string {
@@ -678,9 +679,12 @@ const UniversityCard = memo(function UniversityCard({
       </button>
 
       {/* Header */}
-      <div className="pr-10">
-        <h3 className="font-bold text-lg">{univ.U_NM}</h3>
-        <p className="text-zinc-500 text-sm">{univ.D_NM}</p>
+      <div className="flex items-center gap-3 pr-10">
+        <UniversityLogo uId={univ.U_ID} name={univ.U_NM} size={32} />
+        <div>
+          <h3 className="font-bold text-lg">{univ.U_NM}</h3>
+          <p className="text-zinc-500 text-sm">{univ.D_NM}</p>
+        </div>
       </div>
 
       {/* Info Tags */}

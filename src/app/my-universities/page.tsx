@@ -20,6 +20,7 @@ import {
 import { Heart, MapPin, X, Save, Loader2, Share2, TableProperties } from "lucide-react";
 import { shareScore, initKakao } from "@/lib/kakao-share";
 import ScoreTableModal from "@/components/ScoreTableModal";
+import UniversityLogo from "@/components/UniversityLogo";
 
 interface SavedUniversity {
   id: number;
@@ -239,9 +240,12 @@ export default function MyUniversitiesPage() {
                 </button>
 
                 {/* 대학 정보 */}
-                <div className="pr-10">
-                  <h3 className="font-bold">{s.university.U_NM}</h3>
-                  <p className="text-sm text-zinc-500">{s.university.D_NM}</p>
+                <div className="flex items-center gap-3 pr-10">
+                  <UniversityLogo uId={s.U_ID} name={s.university.U_NM} size={32} />
+                  <div>
+                    <h3 className="font-bold">{s.university.U_NM}</h3>
+                    <p className="text-sm text-zinc-500">{s.university.D_NM}</p>
+                  </div>
                 </div>
 
                 {/* 지역 태그 + 배점표 버튼 */}
