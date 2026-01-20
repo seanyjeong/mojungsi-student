@@ -20,7 +20,7 @@ import {
   EventRecord,
 } from "@/lib/practical-calc";
 import { ScoreForm } from "@/types";
-import { Heart, MapPin, X, Save, Loader2, Share2, TableProperties, AlertCircle } from "lucide-react";
+import { Heart, MapPin, X, Save, Loader2, Share2, TableProperties, AlertCircle, TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 // DB 형식(한글)을 API 형식(ScoreForm)으로 변환
 function convertDbScoresToScoreForm(data: any): ScoreForm {
@@ -251,6 +251,13 @@ export default function MyUniversitiesPage() {
     }
   };
 
+  // 이전 시험 타입 가져오기
+  const getPreviousExamType = (current: ExamType): ExamType | null => {
+    const order: ExamType[] = ["3월", "6월", "9월", "수능"];
+    const idx = order.indexOf(current);
+    return idx > 0 ? order[idx - 1] : null;
+  };
+
   // 시험 토글 변경 시
   const handleExamChange = (examType: ExamType) => {
     setSelectedExam(examType);
@@ -260,10 +267,19 @@ export default function MyUniversitiesPage() {
     if (examScore && !calculatedScores[examType]) {
       calculateScoresForExam(examType, examScore);
     }
+
+    // 이전 시험 점수도 계산 (비교용)
+    const prevExam = getPreviousExamType(examType);
+    if (prevExam) {
+      const prevScore = savedScores.find(s => s.exam_type === prevExam)?.scores;
+      if (prevScore && !calculatedScores[prevExam]) {
+        calculateScoresForExam(prevExam, prevScore);
+      }
+    }
   };
 
   const handleRemove = async (uId: number) => {
-    if (!confirm("정말 삭제하시겠습니까?")) return;
+    if (!confirm("이 대학을 삭제하시겠습니까?\n\n⚠️ 모든 탭(3월/6월/9월/수능)에서 삭제됩니다.")) return;
     const token = getToken();
     if (!token) return;
     try {
@@ -272,6 +288,20 @@ export default function MyUniversitiesPage() {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  // 전 시험 대비 점수 차이 계산
+  const getScoreDiff = (uId: number): { diff: number; prevExam: ExamType } | null => {
+    if (!selectedExam) return null;
+    const prevExam = getPreviousExamType(selectedExam);
+    if (!prevExam) return null;
+
+    const currentScore = calculatedScores[selectedExam]?.[uId];
+    const prevScore = calculatedScores[prevExam]?.[uId];
+
+    if (currentScore == null || prevScore == null) return null;
+
+    return { diff: currentScore - prevScore, prevExam };
   };
 
   // 탭별 대학 필터링
@@ -472,6 +502,7 @@ export default function MyUniversitiesPage() {
             const totalScore = calcTotalScore(s);
             const hasNaesin = s.university.내신반영비율 > 0;
             const hasScoreData = selectedExamScore !== null;
+            const scoreDiff = getScoreDiff(s.U_ID);
 
             return (
               <div
@@ -519,7 +550,7 @@ export default function MyUniversitiesPage() {
                 {/* 점수 영역 - 한 줄 */}
                 <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-700 flex items-center gap-3">
                   {/* 세부 점수 카드 */}
-                  <div className="flex gap-1.5">
+                  <div className="flex gap-1.5 items-center">
                     <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg py-1 px-2 text-center min-w-[50px]">
                       <p className="text-[9px] text-blue-500 dark:text-blue-400">{selectedExam || "수능"}</p>
                       <p className="text-xs font-semibold text-blue-700 dark:text-blue-300">
@@ -532,6 +563,25 @@ export default function MyUniversitiesPage() {
                         )}
                       </p>
                     </div>
+                    {/* 전 시험 대비 점수 변화 */}
+                    {scoreDiff && (
+                      <div className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium ${
+                        scoreDiff.diff > 0
+                          ? "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400"
+                          : scoreDiff.diff < 0
+                            ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                            : "bg-zinc-100 dark:bg-zinc-700 text-zinc-500"
+                      }`}>
+                        {scoreDiff.diff > 0 ? (
+                          <TrendingUp className="w-3 h-3" />
+                        ) : scoreDiff.diff < 0 ? (
+                          <TrendingDown className="w-3 h-3" />
+                        ) : (
+                          <Minus className="w-3 h-3" />
+                        )}
+                        <span>{scoreDiff.diff > 0 ? "+" : ""}{scoreDiff.diff.toFixed(1)}</span>
+                      </div>
+                    )}
                     {hasNaesin && (
                       <div className="bg-green-50 dark:bg-green-900/30 rounded-lg py-1 px-2 text-center min-w-[50px]">
                         <p className="text-[9px] text-green-500 dark:text-green-400">내신</p>
