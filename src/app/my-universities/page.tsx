@@ -21,6 +21,47 @@ import {
 } from "@/lib/practical-calc";
 import { ScoreForm } from "@/types";
 import { Heart, MapPin, X, Save, Loader2, Share2, TableProperties, AlertCircle } from "lucide-react";
+
+// DB 형식(한글)을 API 형식(ScoreForm)으로 변환
+function convertDbScoresToScoreForm(data: any): ScoreForm {
+  // 이미 영어 키 형식이면 그대로 반환
+  if (data.korean || data.math) {
+    return data as ScoreForm;
+  }
+  // 한글 키 형식이면 변환
+  return {
+    korean: {
+      subject: data.국어_선택과목 || "화법과작문",
+      std: data.국어_표준점수 || 0,
+      pct: data.국어_백분위 || 0,
+      grade: data.국어_등급 || 0,
+    },
+    math: {
+      subject: data.수학_선택과목 || "미적분",
+      std: data.수학_표준점수 || 0,
+      pct: data.수학_백분위 || 0,
+      grade: data.수학_등급 || 0,
+    },
+    english: {
+      grade: data.영어_등급 || 5,
+    },
+    history: {
+      grade: data.한국사_등급 || 4,
+    },
+    inquiry1: {
+      subject: data.탐구1_선택과목 || "",
+      std: data.탐구1_표준점수 || 0,
+      pct: data.탐구1_백분위 || 0,
+      grade: data.탐구1_등급 || 0,
+    },
+    inquiry2: {
+      subject: data.탐구2_선택과목 || "",
+      std: data.탐구2_표준점수 || 0,
+      pct: data.탐구2_백분위 || 0,
+      grade: data.탐구2_등급 || 0,
+    },
+  };
+}
 import { shareScore, initKakao } from "@/lib/kakao-share";
 import ScoreTableModal from "@/components/ScoreTableModal";
 import UniversityLogo from "@/components/UniversityLogo";
@@ -178,13 +219,15 @@ export default function MyUniversitiesPage() {
     setCalculating(true);
     try {
       const results: { [U_ID: number]: number | null } = {};
+      // DB 형식(한글 키)을 API 형식(영어 키)으로 변환
+      const convertedScores = convertDbScoresToScoreForm(scores);
 
       // 각 대학별로 점수 계산 (병렬 처리)
       await Promise.all(
         saved.map(async (s) => {
           try {
             // examType 전달하여 해당 시험의 최고표점/변표 사용
-            const result = await calculateScore(s.U_ID, scores, activeYear, examType);
+            const result = await calculateScore(s.U_ID, convertedScores, activeYear, examType);
             if (result.success && result.result?.totalScore) {
               results[s.U_ID] = parseFloat(result.result.totalScore);
             } else {
