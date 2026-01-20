@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef, memo } from "react";
 import { useAuth, getToken, useRequireProfile } from "@/lib/auth";
-import { getUniversities, calculateAll, toggleSaveUniversity, getSavedUniversities, getProfile, getScores, getActiveYear } from "@/lib/api";
+import { getUniversities, calculateAll, toggleSaveUniversity, getSavedUniversities, getProfile, getScores, getActiveYear, getActiveExam } from "@/lib/api";
 import { ScoreForm } from "@/types";
 import { Heart, Filter, MapPin, Users, TrendingUp, ChevronDown, ChevronUp, Info, AlertCircle } from "lucide-react";
 import UniversityLogo from "@/components/UniversityLogo";
@@ -244,24 +244,26 @@ export default function SearchPage() {
       if (token && profileAndScores[0]) {
         try {
           const [profile, dbScores] = profileAndScores as [any, any];
-          // 프로필에서 계산용 시험 타입 및 학년 조회
-          const selectedExamType = profile.calc_exam_type || "수능";
+
+          // 관리자 설정 활성 시험 조회 (항상 최신 기준으로 계산)
+          const activeExamInfo = await getActiveExam();
+          const activeExamType = activeExamInfo.examType || "수능";
 
           // 학년에 따라 입시연도 결정: 2학년→2028, 3학년/N수→2027
           userYear = profile.grade === "2학년" ? 2028 : 2027;
 
           if (dbScores && dbScores.length > 0) {
-            // 선택된 시험 타입의 성적 찾기
-            const selectedScore = dbScores.find((s: any) => s.exam_type === selectedExamType);
+            // 활성 시험의 성적 찾기
+            const activeScore = dbScores.find((s: any) => s.exam_type === activeExamType);
 
-            if (selectedScore?.scores) {
-              // 선택된 시험의 성적 사용
-              scores = convertDbScoresToScoreForm(selectedScore.scores);
-              examTypeForCalc = selectedExamType;
-              setUsedExamType(selectedExamType);
+            if (activeScore?.scores) {
+              // 활성 시험의 성적 사용
+              scores = convertDbScoresToScoreForm(activeScore.scores);
+              examTypeForCalc = activeExamType;
+              setUsedExamType(activeExamType);
               setNoScoreWarning(false);
             } else if (dbScores[0].scores) {
-              // 선택된 시험에 성적이 없으면 첫 번째 성적 사용 (fallback)
+              // 활성 시험에 성적이 없으면 첫 번째 성적 사용 (fallback)
               scores = convertDbScoresToScoreForm(dbScores[0].scores);
               examTypeForCalc = dbScores[0].exam_type;
               setUsedExamType(dbScores[0].exam_type);
