@@ -702,33 +702,6 @@ export default function MyPage() {
               );
             })()}
 
-            {/* 계산에 사용할 시험 선택 */}
-            <div className="pt-4 border-t border-zinc-100 dark:border-zinc-700">
-              <p className="text-sm text-zinc-500 mb-3 flex items-center gap-1.5">
-                <Calculator className="w-4 h-4" /> 계산에 사용할 시험
-              </p>
-              <div className="grid grid-cols-4 gap-2">
-                {EXAM_TYPES.map((exam) => (
-                  <button
-                    key={exam.value}
-                    onClick={() => handleSetCalcExam(exam.value)}
-                    disabled={!scores[exam.value]}
-                    className={`px-3 py-2 rounded-full text-sm font-medium transition ${
-                      calcExam === exam.value
-                        ? "bg-green-500 text-white"
-                        : scores[exam.value]
-                          ? "bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400"
-                          : "bg-zinc-50 dark:bg-zinc-800 text-zinc-300 dark:text-zinc-600 cursor-not-allowed"
-                    }`}
-                  >
-                    {exam.label} {calcExam === exam.value && <span className="ml-0.5">✓</span>}
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs text-zinc-400 mt-2">
-                대학검색에서 {calcExam} 성적으로 계산
-              </p>
-            </div>
           </div>
 
           {/* Score Input Cards */}
