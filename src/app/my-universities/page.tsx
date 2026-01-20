@@ -183,7 +183,8 @@ export default function MyUniversitiesPage() {
       await Promise.all(
         saved.map(async (s) => {
           try {
-            const result = await calculateScore(s.U_ID, scores, activeYear);
+            // examType 전달하여 해당 시험의 최고표점/변표 사용
+            const result = await calculateScore(s.U_ID, scores, activeYear, examType);
             if (result.success && result.result?.totalScore) {
               results[s.U_ID] = parseFloat(result.result.totalScore);
             } else {

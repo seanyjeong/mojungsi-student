@@ -240,6 +240,7 @@ export default function SearchPage() {
       // 로그인 시에만 DB에서 성적 가져와서 계산 (비로그인은 계산 안 함)
       let scores: ScoreForm | null = null;
       let userYear = activeYear; // 기본값은 서버 설정 연도
+      let examTypeForCalc: string | null = null; // 계산에 사용할 시험 타입
       if (token && profileAndScores[0]) {
         try {
           const [profile, dbScores] = profileAndScores as [any, any];
@@ -256,11 +257,13 @@ export default function SearchPage() {
             if (selectedScore?.scores) {
               // 선택된 시험의 성적 사용
               scores = convertDbScoresToScoreForm(selectedScore.scores);
+              examTypeForCalc = selectedExamType;
               setUsedExamType(selectedExamType);
               setNoScoreWarning(false);
             } else if (dbScores[0].scores) {
               // 선택된 시험에 성적이 없으면 첫 번째 성적 사용 (fallback)
               scores = convertDbScoresToScoreForm(dbScores[0].scores);
+              examTypeForCalc = dbScores[0].exam_type;
               setUsedExamType(dbScores[0].exam_type);
               setNoScoreWarning(true); // 경고 표시
             }
@@ -278,9 +281,10 @@ export default function SearchPage() {
       let calculated: CalculatedUniv[] = data;
 
       // Calculate scores if user has entered scores
-      if (scores && Object.keys(scores).length > 0) {
+      if (scores && Object.keys(scores).length > 0 && examTypeForCalc) {
         try {
-          const response = await calculateAll(scores, userYear);
+          // examType 전달하여 해당 시험의 최고표점/변표 사용
+          const response = await calculateAll(scores, userYear, examTypeForCalc);
           // 대학명+학과명으로 매칭 (U_ID가 다른 테이블이라 불일치)
           const resultMap = new Map(
             response.results.map((r: any) => [

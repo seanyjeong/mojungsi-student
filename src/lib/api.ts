@@ -32,7 +32,8 @@ export async function getActiveYear(): Promise<number> {
 export async function calculateScore(
   U_ID: number,
   scores: ScoreForm,
-  year: number = 2026
+  year: number = 2026,
+  examType?: string  // 3월, 6월, 9월, 수능
 ): Promise<SingleCalculationResult> {
   const response = await fetch(`${API_BASE_URL}/calculate`, {
     method: "POST",
@@ -43,6 +44,7 @@ export async function calculateScore(
       U_ID,
       year,
       scores,
+      basis_exam: examType,  // 해당 시험의 최고표점/변표 사용
     }),
   });
 
@@ -78,7 +80,8 @@ export async function calculateBatch(
 // 전체 대학 환산점수 계산 (U_IDs 필요 없음)
 export async function calculateAll(
   scores: ScoreForm,
-  year: number = 2026
+  year: number = 2026,
+  examType?: string  // 3월, 6월, 9월, 수능
 ): Promise<{ success: boolean; results: Array<{ U_ID: number; 환산점수: number }>; count: number }> {
   const response = await fetch(`${API_BASE_URL}/calculate/all`, {
     method: "POST",
@@ -88,6 +91,7 @@ export async function calculateAll(
     body: JSON.stringify({
       year,
       scores,
+      basis_exam: examType,  // 해당 시험의 최고표점/변표 사용
     }),
   });
 
