@@ -203,6 +203,105 @@ export async function getScores(token: string) {
   return response.json();
 }
 
+// ========== 가채점 관련 API ==========
+
+export interface ActiveExamInfo {
+  year: number;
+  examType: string | null;
+  mode: "gachaejeom" | "seongjeokpyo" | null;
+  examDate?: string;
+  releaseDate?: string;
+  isForced: boolean;
+}
+
+export interface RawScoreInput {
+  korean?: { subject: string; raw: number };
+  math?: { subject: string; raw: number };
+  english?: { raw: number };
+  history?: { raw: number };
+  inquiry1?: { subject: string; raw: number };
+  inquiry2?: { subject: string; raw: number };
+}
+
+export interface ConvertedScores {
+  korean?: { subject: string; std: number; pct: number; grade: number };
+  math?: { subject: string; std: number; pct: number; grade: number };
+  english?: { grade: number };
+  history?: { grade: number };
+  inquiry1?: { subject: string; std: number; pct: number; grade: number };
+  inquiry2?: { subject: string; std: number; pct: number; grade: number };
+}
+
+/**
+ * 현재 활성 시험 조회
+ * GET /saas/scores/active-exam
+ */
+export async function getActiveExam(year?: number): Promise<ActiveExamInfo> {
+  const params = year ? `?year=${year}` : "";
+  const response = await fetch(`${API_BASE_URL}/saas/scores/active-exam${params}`);
+  if (!response.ok) {
+    // 기본값 반환
+    return {
+      year: year || new Date().getFullYear(),
+      examType: null,
+      mode: null,
+      isForced: false,
+    };
+  }
+  return response.json();
+}
+
+/**
+ * 원점수 보간 (저장 없이 변환만)
+ * POST /saas/scores/interpolate
+ */
+export async function interpolateScores(
+  examType: string,
+  rawScores: RawScoreInput,
+  year?: number
+): Promise<ConvertedScores> {
+  const response = await fetch(`${API_BASE_URL}/saas/scores/interpolate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      examType,
+      rawScores,
+      year: year || 2026,
+    }),
+  });
+  if (!response.ok) throw new Error("Failed to interpolate scores");
+  return response.json();
+}
+
+/**
+ * 가채점 성적 저장
+ * POST /saas/scores/gachaejeom
+ */
+export async function saveGachaejeomScore(
+  token: string,
+  examType: string,
+  rawScores: RawScoreInput,
+  year?: number
+) {
+  const response = await fetch(`${API_BASE_URL}/saas/scores/gachaejeom`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      examType,
+      rawScores,
+      year: year || 2026,
+    }),
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to save gachaejeom score");
+  }
+  return response.json();
+}
+
 export async function getScoreByExamType(
   token: string,
   examType: string,

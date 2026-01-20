@@ -1,19 +1,35 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, getToken } from "@/lib/auth";
-import { getProfile, updateProfile, getScores, saveScore, withdrawUser, getActiveYear } from "@/lib/api";
+import { getProfile, updateProfile, getScores, saveScore, withdrawUser, getActiveYear, getActiveExam, interpolateScores, saveGachaejeomScore } from "@/lib/api";
 import { ScoreForm } from "@/types";
-import { User, Pencil, Save, Book, Calculator, Globe, Landmark, Search, AlertTriangle, X, CheckCircle, XCircle, Hand } from "lucide-react";
+import { User, Pencil, Save, Book, Calculator, Globe, Landmark, Search, AlertTriangle, X, CheckCircle, XCircle, Hand, Info, Zap, FileText, RefreshCw } from "lucide-react";
 
 // DB 저장값과 화면 표시 라벨 매핑
 const EXAM_TYPES = [
-  { value: "3월모의고사", label: "3월" },
-  { value: "6월모평", label: "6월" },
-  { value: "9월모평", label: "9월" },
-  { value: "수능", label: "수능" },
+  { value: "3월모의고사", label: "3월", short: "3월" },
+  { value: "6월모평", label: "6월", short: "6월" },
+  { value: "9월모평", label: "9월", short: "9월" },
+  { value: "수능", label: "수능", short: "수능" },
 ];
+
+// API exam_type 변환
+const EXAM_TYPE_MAP: Record<string, string> = {
+  "3월": "3월모의고사",
+  "6월": "6월모평",
+  "9월": "9월모평",
+  "수능": "수능",
+};
+
+const REVERSE_EXAM_TYPE_MAP: Record<string, string> = {
+  "3월모의고사": "3월",
+  "6월모평": "6월",
+  "9월모평": "9월",
+  "수능": "수능",
+};
+
 const GRADE_OPTIONS = ["1", "2", "3", "N수"];
 
 const 사회탐구 = ["생활과윤리", "윤리와사상", "한국지리", "세계지리", "동아시아사", "세계사", "정치와법", "경제", "사회문화"];
@@ -60,6 +76,35 @@ interface ScoreData {
   탐구2_백분위?: number;
   탐구2_등급?: number;
   탐구2_미응시?: boolean;
+  // 메타 데이터
+  score_mode?: "가채점" | "성적표";
+  gachaejeom_edit_count?: number;
+  seongjeokpyo_edit_count?: number;
+}
+
+interface ActiveExamInfo {
+  year: number;
+  examType: string | null;
+  mode: "gachaejeom" | "seongjeokpyo" | null;
+  examDate?: string;
+  releaseDate?: string;
+  isForced: boolean;
+}
+
+// 예상 점수 타입
+interface EstimatedScore {
+  std?: number;
+  pct?: number;
+  grade?: number;
+}
+
+interface EstimatedScores {
+  korean?: EstimatedScore;
+  math?: EstimatedScore;
+  english?: { grade?: number };
+  history?: { grade?: number };
+  inquiry1?: EstimatedScore;
+  inquiry2?: EstimatedScore;
 }
 
 export default function MyPage() {
@@ -80,6 +125,12 @@ export default function MyPage() {
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
 
+  // 가채점 관련 상태
+  const [activeExamInfo, setActiveExamInfo] = useState<ActiveExamInfo | null>(null);
+  const [inputMode, setInputMode] = useState<"gachaejeom" | "seongjeokpyo">("seongjeokpyo");
+  const [estimatedScores, setEstimatedScores] = useState<EstimatedScores>({});
+  const [isInterpolating, setIsInterpolating] = useState(false);
+
   useEffect(() => {
     if (!isLoading && !isLoggedIn) {
       router.push("/");
@@ -90,6 +141,7 @@ export default function MyPage() {
     if (isLoggedIn) {
       loadProfile();
       loadScores();
+      loadActiveExam();
     }
   }, [isLoggedIn]);
 
@@ -100,6 +152,38 @@ export default function MyPage() {
       setCurrentScore({});
     }
   }, [selectedExam, scores]);
+
+  // 활성 시험 정보가 로드되면 선택된 시험 및 모드 업데이트
+  useEffect(() => {
+    if (activeExamInfo?.examType) {
+      const examValue = EXAM_TYPE_MAP[activeExamInfo.examType];
+      if (examValue) {
+        setSelectedExam(examValue);
+        if (activeExamInfo.mode) {
+          setInputMode(activeExamInfo.mode);
+        }
+      }
+    }
+  }, [activeExamInfo]);
+
+  // 원점수 변경 시 실시간 보간 (가채점 모드에서만)
+  useEffect(() => {
+    if (inputMode === "gachaejeom") {
+      debouncedInterpolate();
+    }
+  }, [
+    inputMode,
+    currentScore.국어_선택과목,
+    currentScore.국어_원점수,
+    currentScore.수학_선택과목,
+    currentScore.수학_원점수,
+    currentScore.영어_원점수,
+    currentScore.한국사_원점수,
+    currentScore.탐구1_선택과목,
+    currentScore.탐구1_원점수,
+    currentScore.탐구2_선택과목,
+    currentScore.탐구2_원점수,
+  ]);
 
   const loadProfile = async () => {
     const token = getToken();
@@ -141,13 +225,53 @@ export default function MyPage() {
       const data = await getScores(token);
       const map: Record<string, ScoreData> = {};
       data.forEach((s: any) => {
-        map[s.exam_type] = s.scores || {};
+        map[s.exam_type] = {
+          ...(s.scores || {}),
+          score_mode: s.score_mode,
+          gachaejeom_edit_count: s.gachaejeom_edit_count,
+          seongjeokpyo_edit_count: s.seongjeokpyo_edit_count,
+        };
       });
       setScores(map);
     } catch (err) {
       console.error(err);
     }
   };
+
+  const loadActiveExam = async () => {
+    try {
+      const data = await getActiveExam();
+      setActiveExamInfo(data);
+    } catch (err) {
+      console.error("Failed to load active exam:", err);
+    }
+  };
+
+  // 실시간 보간 (디바운스 적용)
+  const debouncedInterpolate = useCallback(
+    debounce(async () => {
+      if (inputMode !== "gachaejeom") return;
+
+      const rawScores = buildRawScoresPayload(currentScore);
+      if (!hasAnyRawScore(rawScores)) {
+        setEstimatedScores({});
+        return;
+      }
+
+      setIsInterpolating(true);
+      try {
+        const activeYear = await getActiveYear();
+        const examType = REVERSE_EXAM_TYPE_MAP[selectedExam] || "수능";
+        const result = await interpolateScores(examType, rawScores, activeYear);
+        setEstimatedScores(result);
+      } catch (err) {
+        console.error("Interpolation failed:", err);
+      } finally {
+        setIsInterpolating(false);
+      }
+    }, 500),
+    [currentScore, inputMode, selectedExam]
+  );
 
   const handleSaveProfile = async () => {
     const token = getToken();
@@ -161,10 +285,10 @@ export default function MyPage() {
         gender: profile.gender,
       });
       setEditMode(false);
-      setMessage("✅ 프로필이 저장되었습니다!");
+      setMessage("프로필이 저장되었습니다!");
       setTimeout(() => setMessage(""), 3000);
     } catch (err) {
-      setMessage("❌ 프로필 저장에 실패했습니다");
+      setMessage("프로필 저장에 실패했습니다");
       setTimeout(() => setMessage(""), 3000);
     } finally {
       setSaving(false);
@@ -174,7 +298,7 @@ export default function MyPage() {
   // 모달에서 필수 정보 저장
   const handleSaveRequiredProfile = async () => {
     if (!modalProfile.gender || !modalProfile.grade) {
-      setMessage("❌ 성별과 학년을 모두 선택해주세요");
+      setMessage("성별과 학년을 모두 선택해주세요");
       setTimeout(() => setMessage(""), 3000);
       return;
     }
@@ -197,10 +321,10 @@ export default function MyPage() {
         grade: modalProfile.grade,
       }));
       setShowProfileModal(false);
-      setMessage("✅ 정보가 저장되었습니다!");
+      setMessage("정보가 저장되었습니다!");
       setTimeout(() => setMessage(""), 3000);
     } catch (err) {
-      setMessage("❌ 저장에 실패했습니다");
+      setMessage("저장에 실패했습니다");
       setTimeout(() => setMessage(""), 3000);
     } finally {
       setSaving(false);
@@ -217,7 +341,7 @@ export default function MyPage() {
       logout();
       router.push("/");
     } catch (err) {
-      setMessage("❌ 회원탈퇴에 실패했습니다");
+      setMessage("회원탈퇴에 실패했습니다");
       setTimeout(() => setMessage(""), 3000);
     } finally {
       setWithdrawing(false);
@@ -261,18 +385,36 @@ export default function MyPage() {
     };
   };
 
+  // 성적 저장
   const handleSaveScore = async () => {
     const token = getToken();
     if (!token) return;
     setScoreSaving(true);
     try {
       const activeYear = await getActiveYear();
-      await saveScore(token, selectedExam, currentScore, activeYear);
+
+      if (inputMode === "gachaejeom") {
+        // 가채점 저장
+        const rawScores = buildRawScoresPayload(currentScore);
+        const examType = REVERSE_EXAM_TYPE_MAP[selectedExam] || "수능";
+        await saveGachaejeomScore(token, examType, rawScores, activeYear);
+      } else {
+        // 성적표 저장
+        await saveScore(token, selectedExam, currentScore, activeYear);
+      }
+
       setScores(prev => ({ ...prev, [selectedExam]: currentScore }));
-      setMessage("✅ 성적이 저장되었습니다!");
+      setMessage("성적이 저장되었습니다!");
       setTimeout(() => setMessage(""), 3000);
-    } catch (err) {
-      setMessage("❌ 저장에 실패했습니다");
+
+      // 성적 재로드 (edit_count 업데이트)
+      loadScores();
+    } catch (err: any) {
+      if (err.message?.includes("수정 횟수")) {
+        setMessage("수정 횟수를 초과했습니다 (최대 2회)");
+      } else {
+        setMessage("저장에 실패했습니다");
+      }
       setTimeout(() => setMessage(""), 3000);
     } finally {
       setScoreSaving(false);
@@ -287,12 +429,41 @@ export default function MyPage() {
     setCalcExam(exam);
     try {
       await updateProfile(token, { calc_exam_type: exam });
-      setMessage(`✅ "${exam}" 성적으로 계산합니다!`);
+      setMessage(`"${EXAM_TYPES.find(e => e.value === exam)?.label || exam}" 성적으로 계산합니다!`);
       setTimeout(() => setMessage(""), 3000);
     } catch (err) {
       console.error("Failed to save calc exam type:", err);
     }
   };
+
+  // 현재 시험이 활성 시험인지 확인
+  const isActiveExam = useMemo(() => {
+    if (!activeExamInfo?.examType) return false;
+    const activeExamValue = EXAM_TYPE_MAP[activeExamInfo.examType];
+    return selectedExam === activeExamValue;
+  }, [activeExamInfo, selectedExam]);
+
+  // 해당 시험의 모드 가져오기
+  const getExamMode = useCallback((examValue: string): "gachaejeom" | "seongjeokpyo" | null => {
+    if (!activeExamInfo?.examType) return null;
+    const activeExamValue = EXAM_TYPE_MAP[activeExamInfo.examType];
+    if (examValue === activeExamValue) {
+      return activeExamInfo.mode;
+    }
+    // 활성 시험이 아니면 성적표 모드
+    return "seongjeokpyo";
+  }, [activeExamInfo]);
+
+  // 수정 횟수 표시
+  const getEditCountDisplay = useCallback((examValue: string) => {
+    const scoreData = scores[examValue];
+    if (!scoreData) return null;
+
+    const gachaejeomCount = scoreData.gachaejeom_edit_count || 0;
+    const seongjeokpyoCount = scoreData.seongjeokpyo_edit_count || 0;
+
+    return { gachaejeom: gachaejeomCount, seongjeokpyo: seongjeokpyoCount };
+  }, [scores]);
 
   if (isLoading) {
     return (
@@ -354,16 +525,16 @@ export default function MyPage() {
       {/* Toast Notification */}
       {message && (
         <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-xl shadow-2xl text-base font-semibold transform transition-all duration-300 flex items-center gap-2 ${
-          message.includes("✅")
-            ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white"
-            : "bg-gradient-to-r from-red-500 to-rose-500 text-white"
+          message.includes("실패") || message.includes("초과")
+            ? "bg-gradient-to-r from-red-500 to-rose-500 text-white"
+            : "bg-gradient-to-r from-green-500 to-emerald-500 text-white"
         }`}>
-          {message.includes("✅") ? (
-            <CheckCircle className="w-5 h-5" />
-          ) : (
+          {message.includes("실패") || message.includes("초과") ? (
             <XCircle className="w-5 h-5" />
+          ) : (
+            <CheckCircle className="w-5 h-5" />
           )}
-          {message.replace(/✅|❌/g, "").trim()}
+          {message}
         </div>
       )}
 
@@ -451,24 +622,109 @@ export default function MyPage() {
       {/* Scores Tab */}
       {activeTab === "scores" && (
         <div className="space-y-4">
-          {/* Exam Type Selector */}
+          {/* 안내 문구 */}
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 flex items-start gap-3">
+            <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-blue-700 dark:text-blue-300">
+              <p className="font-medium">한국교육과정평가원 주관 시험만 입력 가능합니다</p>
+              {inputMode === "gachaejeom" && isActiveExam && (
+                <p className="mt-1 text-blue-600 dark:text-blue-400">
+                  예상 점수는 등급컷 기반 추정치입니다
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Exam Type Selector with Mode Indicator */}
           <div className="bg-white dark:bg-zinc-800 rounded-xl p-4 shadow-sm">
             <p className="text-sm text-zinc-500 mb-3">성적 입력할 시험 선택</p>
             <div className="grid grid-cols-4 gap-2">
-              {EXAM_TYPES.map((exam) => (
-                <button
-                  key={exam.value}
-                  onClick={() => setSelectedExam(exam.value)}
-                  className={`px-3 py-2 rounded-full text-sm font-medium transition ${
-                    selectedExam === exam.value
-                      ? "bg-blue-500 text-white"
-                      : "bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400"
-                  }`}
-                >
-                  {exam.label}
-                </button>
-              ))}
+              {EXAM_TYPES.map((exam) => {
+                const examMode = getExamMode(exam.value);
+                const isActive = activeExamInfo?.examType === REVERSE_EXAM_TYPE_MAP[exam.value];
+                const editCounts = getEditCountDisplay(exam.value);
+
+                return (
+                  <button
+                    key={exam.value}
+                    onClick={() => {
+                      setSelectedExam(exam.value);
+                      if (examMode) {
+                        setInputMode(examMode);
+                      }
+                    }}
+                    className={`relative px-3 py-2 rounded-xl text-sm font-medium transition ${
+                      selectedExam === exam.value
+                        ? "bg-blue-500 text-white"
+                        : "bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400"
+                    }`}
+                  >
+                    <span>{exam.label}</span>
+                    {isActive && (
+                      <span className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full ${
+                        examMode === "gachaejeom" ? "bg-amber-400" : "bg-green-400"
+                      }`} />
+                    )}
+                  </button>
+                );
+              })}
             </div>
+
+            {/* 모드 표시 및 전환 */}
+            {isActiveExam && activeExamInfo?.mode && (
+              <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-700">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm text-zinc-500">입력 모드</p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setInputMode("gachaejeom")}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                        inputMode === "gachaejeom"
+                          ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                          : "bg-zinc-100 dark:bg-zinc-700 text-zinc-500"
+                      }`}
+                    >
+                      <Zap className="w-3.5 h-3.5" />
+                      가채점
+                    </button>
+                    <button
+                      onClick={() => setInputMode("seongjeokpyo")}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                        inputMode === "seongjeokpyo"
+                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                          : "bg-zinc-100 dark:bg-zinc-700 text-zinc-500"
+                      }`}
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      성적표
+                    </button>
+                  </div>
+                </div>
+
+                {/* 수정 횟수 표시 */}
+                {(() => {
+                  const counts = getEditCountDisplay(selectedExam);
+                  if (!counts) return null;
+                  const currentCount = inputMode === "gachaejeom" ? counts.gachaejeom : counts.seongjeokpyo;
+                  const remaining = 2 - currentCount;
+                  return (
+                    <p className={`text-xs ${remaining <= 0 ? "text-red-500" : "text-zinc-400"}`}>
+                      {inputMode === "gachaejeom" ? "가채점" : "성적표"} 수정 가능 횟수: {remaining}회 남음
+                    </p>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* 성적표 미입력 안내 */}
+            {!isActiveExam && activeExamInfo?.mode === "seongjeokpyo" && !scores[selectedExam] && (
+              <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-700">
+                <p className="text-sm text-amber-600 dark:text-amber-400 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4" />
+                  성적표를 입력하세요
+                </p>
+              </div>
+            )}
 
             {/* 계산에 사용할 시험 선택 */}
             <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-700">
@@ -486,7 +742,7 @@ export default function MyPage() {
                         : "bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400"
                     }`}
                   >
-                    {exam.label} {calcExam === exam.value && "✓"}
+                    {exam.label} {calcExam === exam.value && <span className="ml-0.5">&#10003;</span>}
                   </button>
                 ))}
               </div>
@@ -505,6 +761,9 @@ export default function MyPage() {
             setScore={setCurrentScore}
             subjectKey="국어"
             subjectOptions={["화법과작문", "언어와매체"]}
+            inputMode={inputMode}
+            estimatedScore={estimatedScores.korean}
+            isInterpolating={isInterpolating}
           />
 
           <ScoreCard
@@ -515,6 +774,9 @@ export default function MyPage() {
             setScore={setCurrentScore}
             subjectKey="수학"
             subjectOptions={["확률과통계", "미적분", "기하"]}
+            inputMode={inputMode}
+            estimatedScore={estimatedScores.math}
+            isInterpolating={isInterpolating}
           />
 
           <ScoreCard
@@ -526,6 +788,10 @@ export default function MyPage() {
             subjectKey="영어"
             noSubject
             noStandardScore
+            inputMode={inputMode}
+            estimatedScore={estimatedScores.english}
+            isInterpolating={isInterpolating}
+            isAbsoluteGrade
           />
 
           <ScoreCard
@@ -537,6 +803,10 @@ export default function MyPage() {
             subjectKey="한국사"
             noSubject
             noStandardScore
+            inputMode={inputMode}
+            estimatedScore={estimatedScores.history}
+            isInterpolating={isInterpolating}
+            isAbsoluteGrade
           />
 
           <ScoreCard
@@ -549,6 +819,9 @@ export default function MyPage() {
             subjectOptions={탐구과목}
             fullWidthSubject
             grouped
+            inputMode={inputMode}
+            estimatedScore={estimatedScores.inquiry1}
+            isInterpolating={isInterpolating}
           />
 
           <ScoreCard
@@ -562,14 +835,27 @@ export default function MyPage() {
             fullWidthSubject
             grouped
             excludeSubject={currentScore.탐구1_선택과목}
+            inputMode={inputMode}
+            estimatedScore={estimatedScores.inquiry2}
+            isInterpolating={isInterpolating}
           />
 
           <button
             onClick={handleSaveScore}
             disabled={scoreSaving}
-            className="w-full py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition"
+            className="w-full py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition flex items-center justify-center gap-2"
           >
-            {scoreSaving ? "저장 중..." : "성적 저장하기"}
+            {scoreSaving ? (
+              <>
+                <RefreshCw className="w-5 h-5 animate-spin" />
+                저장 중...
+              </>
+            ) : (
+              <>
+                <Save className="w-5 h-5" />
+                {inputMode === "gachaejeom" ? "가채점 저장하기" : "성적 저장하기"}
+              </>
+            )}
           </button>
         </div>
       )}
@@ -756,6 +1042,10 @@ function ScoreCard({
   fullWidthSubject,
   grouped,
   excludeSubject,
+  inputMode,
+  estimatedScore,
+  isInterpolating,
+  isAbsoluteGrade,
 }: {
   title: string;
   icon: React.ReactNode;
@@ -769,6 +1059,10 @@ function ScoreCard({
   fullWidthSubject?: boolean;
   grouped?: boolean;
   excludeSubject?: string;
+  inputMode: "gachaejeom" | "seongjeokpyo";
+  estimatedScore?: { std?: number; pct?: number; grade?: number };
+  isInterpolating?: boolean;
+  isAbsoluteGrade?: boolean;
 }) {
   const colorMap: Record<string, string> = {
     red: "border-l-red-500 text-red-600",
@@ -807,11 +1101,19 @@ function ScoreCard({
   // 과목 필터링 (excludeSubject 제외)
   const filteredOptions = subjectOptions?.filter(opt => opt !== excludeSubject);
 
+  // 가채점 모드인지 확인
+  const isGachaejeomMode = inputMode === "gachaejeom";
+
   return (
     <div className={`bg-white dark:bg-zinc-800 rounded-xl p-4 border-l-4 ${colorMap[color]} shadow-sm ${isSkipped ? "opacity-60" : ""}`}>
       <div className="flex items-center justify-between mb-3">
         <h4 className={`font-semibold flex items-center gap-2 ${colorMap[color].split(" ")[1]}`}>
           {icon} {title}
+          {isGachaejeomMode && !isAbsoluteGrade && (
+            <span className="text-xs font-normal text-amber-500 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded-full">
+              가채점
+            </span>
+          )}
         </h4>
         <button
           onClick={toggleSkip}
@@ -821,7 +1123,7 @@ function ScoreCard({
               : "bg-zinc-100 dark:bg-zinc-700 text-zinc-500"
           }`}
         >
-          {isSkipped ? "미응시 ✓" : "미응시"}
+          {isSkipped ? "미응시" : "미응시"}
         </button>
       </div>
 
@@ -837,12 +1139,12 @@ function ScoreCard({
                   className="w-full px-3 py-2 border rounded-lg text-sm bg-zinc-50 dark:bg-zinc-700 dark:border-zinc-600"
                 >
                   <option value="">선택하세요</option>
-                  <optgroup label="📚 사회탐구">
+                  <optgroup label="사회탐구">
                     {사회탐구.filter(s => s !== excludeSubject).map((opt) => (
                       <option key={opt} value={opt}>{opt}</option>
                     ))}
                   </optgroup>
-                  <optgroup label="🔬 과학탐구">
+                  <optgroup label="과학탐구">
                     {과학탐구.filter(s => s !== excludeSubject).map((opt) => (
                       <option key={opt} value={opt}>{opt}</option>
                     ))}
@@ -862,49 +1164,87 @@ function ScoreCard({
               )}
             </div>
           )}
-          <div>
-            <label className="text-xs text-zinc-500 mb-1 block">원점수</label>
-            <input
-              type="number"
-              value={getValue("원점수")}
-              onChange={(e) => setValue("원점수", e.target.value ? parseInt(e.target.value) : "")}
-              className="w-full px-3 py-2 border rounded-lg text-sm bg-zinc-50 dark:bg-zinc-700 dark:border-zinc-600"
-              placeholder="예: 88"
-            />
-          </div>
-          {!noStandardScore && (
+
+          {/* 원점수 입력 (가채점 모드 또는 절대평가 과목) */}
+          {(isGachaejeomMode || isAbsoluteGrade) && (
+            <div>
+              <label className="text-xs text-zinc-500 mb-1 block">원점수</label>
+              <input
+                type="number"
+                value={getValue("원점수")}
+                onChange={(e) => setValue("원점수", e.target.value ? parseInt(e.target.value) : "")}
+                className="w-full px-3 py-2 border rounded-lg text-sm bg-zinc-50 dark:bg-zinc-700 dark:border-zinc-600"
+                placeholder={isAbsoluteGrade ? (subjectKey === "영어" ? "0~100" : "0~50") : "원점수"}
+              />
+            </div>
+          )}
+
+          {/* 가채점 모드: 예상 점수 표시 */}
+          {isGachaejeomMode && !noStandardScore && (
             <>
               <div>
-                <label className="text-xs text-zinc-500 mb-1 block">표준점수</label>
-                <input
-                  type="number"
-                  value={getValue("표준점수")}
-                  onChange={(e) => setValue("표준점수", e.target.value ? parseInt(e.target.value) : "")}
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-zinc-50 dark:bg-zinc-700 dark:border-zinc-600"
-                />
+                <label className="text-xs text-zinc-500 mb-1 block">예상 표준점수</label>
+                <div className={`w-full px-3 py-2 border rounded-lg text-sm bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-center font-medium ${isInterpolating ? "animate-pulse" : ""}`}>
+                  {estimatedScore?.std ?? "-"}
+                </div>
               </div>
               <div>
-                <label className="text-xs text-zinc-500 mb-1 block">백분위</label>
+                <label className="text-xs text-zinc-500 mb-1 block">예상 백분위</label>
+                <div className={`w-full px-3 py-2 border rounded-lg text-sm bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-center font-medium ${isInterpolating ? "animate-pulse" : ""}`}>
+                  {estimatedScore?.pct ?? "-"}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* 가채점 모드: 예상 등급 표시 */}
+          {isGachaejeomMode && (
+            <div>
+              <label className="text-xs text-zinc-500 mb-1 block">예상 등급</label>
+              <div className={`w-full px-3 py-2 border rounded-lg text-sm bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-center font-medium ${isInterpolating ? "animate-pulse" : ""}`}>
+                {estimatedScore?.grade ?? "-"}
+              </div>
+            </div>
+          )}
+
+          {/* 성적표 모드: 직접 입력 */}
+          {!isGachaejeomMode && (
+            <>
+              {!noStandardScore && (
+                <>
+                  <div>
+                    <label className="text-xs text-zinc-500 mb-1 block">표준점수</label>
+                    <input
+                      type="number"
+                      value={getValue("표준점수")}
+                      onChange={(e) => setValue("표준점수", e.target.value ? parseInt(e.target.value) : "")}
+                      className="w-full px-3 py-2 border rounded-lg text-sm bg-zinc-50 dark:bg-zinc-700 dark:border-zinc-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-zinc-500 mb-1 block">백분위</label>
+                    <input
+                      type="number"
+                      value={getValue("백분위")}
+                      onChange={(e) => setValue("백분위", e.target.value ? parseInt(e.target.value) : "")}
+                      className="w-full px-3 py-2 border rounded-lg text-sm bg-zinc-50 dark:bg-zinc-700 dark:border-zinc-600"
+                    />
+                  </div>
+                </>
+              )}
+              <div>
+                <label className="text-xs text-zinc-500 mb-1 block">등급</label>
                 <input
                   type="number"
-                  value={getValue("백분위")}
-                  onChange={(e) => setValue("백분위", e.target.value ? parseInt(e.target.value) : "")}
+                  min="1"
+                  max="9"
+                  value={getValue("등급")}
+                  onChange={(e) => setValue("등급", e.target.value ? parseInt(e.target.value) : "")}
                   className="w-full px-3 py-2 border rounded-lg text-sm bg-zinc-50 dark:bg-zinc-700 dark:border-zinc-600"
                 />
               </div>
             </>
           )}
-          <div>
-            <label className="text-xs text-zinc-500 mb-1 block">등급</label>
-            <input
-              type="number"
-              min="1"
-              max="9"
-              value={getValue("등급")}
-              onChange={(e) => setValue("등급", e.target.value ? parseInt(e.target.value) : "")}
-              className="w-full px-3 py-2 border rounded-lg text-sm bg-zinc-50 dark:bg-zinc-700 dark:border-zinc-600"
-            />
-          </div>
         </div>
       )}
 
@@ -912,5 +1252,75 @@ function ScoreCard({
         <p className="text-sm text-zinc-400 text-center py-4">이 과목은 미응시로 처리됩니다</p>
       )}
     </div>
+  );
+}
+
+// 유틸리티 함수들
+
+// 디바운스 함수
+function debounce<T extends (...args: any[]) => any>(fn: T, delay: number) {
+  let timeoutId: NodeJS.Timeout | null = null;
+  return (...args: Parameters<T>) => {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), delay);
+  };
+}
+
+// 원점수 페이로드 빌드
+function buildRawScoresPayload(score: ScoreData) {
+  const payload: any = {};
+
+  if (score.국어_선택과목 && score.국어_원점수 !== undefined) {
+    payload.korean = {
+      subject: score.국어_선택과목,
+      raw: score.국어_원점수,
+    };
+  }
+
+  if (score.수학_선택과목 && score.수학_원점수 !== undefined) {
+    payload.math = {
+      subject: score.수학_선택과목,
+      raw: score.수학_원점수,
+    };
+  }
+
+  if (score.영어_원점수 !== undefined) {
+    payload.english = {
+      raw: score.영어_원점수,
+    };
+  }
+
+  if (score.한국사_원점수 !== undefined) {
+    payload.history = {
+      raw: score.한국사_원점수,
+    };
+  }
+
+  if (score.탐구1_선택과목 && score.탐구1_원점수 !== undefined) {
+    payload.inquiry1 = {
+      subject: score.탐구1_선택과목,
+      raw: score.탐구1_원점수,
+    };
+  }
+
+  if (score.탐구2_선택과목 && score.탐구2_원점수 !== undefined) {
+    payload.inquiry2 = {
+      subject: score.탐구2_선택과목,
+      raw: score.탐구2_원점수,
+    };
+  }
+
+  return payload;
+}
+
+// 원점수가 하나라도 있는지 확인
+function hasAnyRawScore(rawScores: any): boolean {
+  return !!(
+    rawScores.korean ||
+    rawScores.math ||
+    rawScores.english ||
+    rawScores.history ||
+    rawScores.inquiry1 ||
+    rawScores.inquiry2
   );
 }
