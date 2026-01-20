@@ -94,7 +94,7 @@ export default function MyUniversitiesPage() {
   const [activeTab, setActiveTab] = useState<TabType>("가군");
 
   // 시험 토글 관련 상태
-  const [selectedExam, setSelectedExam] = useState<ExamType>("수능");
+  const [selectedExam, setSelectedExam] = useState<ExamType | null>(null);
   const [savedScores, setSavedScores] = useState<SavedScore[]>([]);
   const [calculatedScores, setCalculatedScores] = useState<CalculatedScores>({});
   const [calculating, setCalculating] = useState(false);
@@ -112,14 +112,34 @@ export default function MyUniversitiesPage() {
     }
   }, [isLoggedIn]);
 
+  // 저장된 성적 로드 후, 첫 번째 가능한 시험 선택
+  useEffect(() => {
+    if (savedScores.length > 0 && selectedExam === null) {
+      // 수능 → 9월 → 6월 → 3월 순으로 우선순위
+      const priority: ExamType[] = ["수능", "9월", "6월", "3월"];
+      for (const exam of priority) {
+        if (savedScores.some(s => s.examType === exam)) {
+          setSelectedExam(exam);
+          return;
+        }
+      }
+      // 우선순위에 없으면 첫 번째 성적 사용
+      const firstExam = savedScores[0]?.examType as ExamType;
+      if (firstExam && EXAM_TYPES.includes(firstExam)) {
+        setSelectedExam(firstExam);
+      }
+    }
+  }, [savedScores, selectedExam]);
+
   // 선택한 시험의 성적이 있는지 확인
   const selectedExamScore = useMemo(() => {
+    if (!selectedExam) return null;
     return savedScores.find(s => s.examType === selectedExam)?.scores || null;
   }, [savedScores, selectedExam]);
 
   // 시험 선택 또는 대학 목록이 변경될 때 점수 계산
   useEffect(() => {
-    if (selectedExamScore && saved.length > 0 && !calculatedScores[selectedExam]) {
+    if (selectedExam && selectedExamScore && saved.length > 0 && !calculatedScores[selectedExam]) {
       calculateScoresForExam(selectedExam, selectedExamScore);
     }
   }, [selectedExam, selectedExamScore, saved]);
@@ -248,9 +268,11 @@ export default function MyUniversitiesPage() {
     let total = 0;
 
     // 실시간 계산된 수능 점수 사용
-    const calcScore = calculatedScores[selectedExam]?.[s.U_ID];
-    if (calcScore !== null && calcScore !== undefined) {
-      total += calcScore;
+    if (selectedExam) {
+      const calcScore = calculatedScores[selectedExam]?.[s.U_ID];
+      if (calcScore !== null && calcScore !== undefined) {
+        total += calcScore;
+      }
     }
 
     if (s.naesin_score) total += Number(s.naesin_score);
@@ -260,6 +282,7 @@ export default function MyUniversitiesPage() {
 
   // 수능 환산점수 가져오기
   const getSunungScore = (s: SavedUniversity): number | null => {
+    if (!selectedExam) return null;
     return calculatedScores[selectedExam]?.[s.U_ID] ?? null;
   };
 
@@ -318,12 +341,30 @@ export default function MyUniversitiesPage() {
         </div>
 
         {/* 성적 미입력 안내 */}
-        {!selectedExamScore && (
+        {selectedExam && !selectedExamScore && (
           <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg flex items-start gap-2">
             <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-sm text-amber-700 dark:text-amber-400">
                 {selectedExam} 성적을 입력하세요
+              </p>
+              <button
+                onClick={() => router.push("/mypage")}
+                className="text-xs text-amber-600 dark:text-amber-500 underline mt-1"
+              >
+                성적 입력하러 가기
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 성적이 하나도 없는 경우 */}
+        {!selectedExam && savedScores.length === 0 && (
+          <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm text-amber-700 dark:text-amber-400">
+                저장된 성적이 없습니다
               </p>
               <button
                 onClick={() => router.push("/mypage")}
@@ -436,7 +477,7 @@ export default function MyUniversitiesPage() {
                   {/* 세부 점수 카드 */}
                   <div className="flex gap-1.5">
                     <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg py-1 px-2 text-center min-w-[50px]">
-                      <p className="text-[9px] text-blue-500 dark:text-blue-400">{selectedExam}</p>
+                      <p className="text-[9px] text-blue-500 dark:text-blue-400">{selectedExam || "수능"}</p>
                       <p className="text-xs font-semibold text-blue-700 dark:text-blue-300">
                         {calculating ? (
                           <Loader2 className="w-3 h-3 animate-spin mx-auto" />
@@ -491,7 +532,7 @@ export default function MyUniversitiesPage() {
           userGender={userGender}
           selectedExam={selectedExam}
           selectedExamScore={selectedExamScore}
-          calculatedScore={calculatedScores[selectedExam]?.[selectedUniv.U_ID] ?? null}
+          calculatedScore={selectedExam ? (calculatedScores[selectedExam]?.[selectedUniv.U_ID] ?? null) : null}
           activeYear={activeYear}
           onClose={() => setSelectedUniv(null)}
           onUpdate={loadData}
@@ -523,7 +564,7 @@ function UniversityModal({
 }: {
   saved: SavedUniversity;
   userGender: string;
-  selectedExam: ExamType;
+  selectedExam: ExamType | null;
   selectedExamScore: ScoreForm | null;
   calculatedScore: number | null;
   activeYear: number;
@@ -730,7 +771,7 @@ function UniversityModal({
           {/* 성적 기준 표시 */}
           <div className="flex items-center gap-2 text-sm">
             <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded font-medium">
-              {selectedExam} 기준
+              {selectedExam || "수능"} 기준
             </span>
             {!selectedExamScore && (
               <span className="text-amber-600 dark:text-amber-400 text-xs">
@@ -757,7 +798,7 @@ function UniversityModal({
           >
             <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 text-center">
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                {selectedExam} 환산
+                {selectedExam || "수능"} 환산
               </p>
               <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
                 {selectedExamScore && sunungScore ? sunungScore.toFixed(1) : "-"}
@@ -791,7 +832,7 @@ function UniversityModal({
                 <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm text-amber-700 dark:text-amber-400 font-medium">
-                    {selectedExam} 성적이 입력되지 않았습니다
+                    {selectedExam || "수능"} 성적이 입력되지 않았습니다
                   </p>
                   <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
                     마이페이지에서 성적을 입력하면 정확한 환산점수를 확인할 수 있습니다.
