@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth, getToken } from "@/lib/auth";
 import { getProfile, updateProfile, getScores, saveScore, withdrawUser, getActiveYear, getActiveExam, interpolateScores, saveGachaejeomScore } from "@/lib/api";
 import { ScoreForm } from "@/types";
-import { User, Pencil, Save, Book, Calculator, Globe, Landmark, Search, AlertTriangle, X, CheckCircle, XCircle, Hand, Info, Zap, FileText, RefreshCw } from "lucide-react";
+import { User, Pencil, Save, Book, Calculator, Globe, Landmark, Search, AlertTriangle, X, CheckCircle, XCircle, Hand, Info, RefreshCw } from "lucide-react";
 
 // DB 저장값과 화면 표시 라벨 매핑 (통일됨)
 const EXAM_TYPES = [
@@ -658,29 +658,27 @@ export default function MyPage() {
                   </span>
                 </div>
 
-                {/* 모드 전환 버튼 */}
-                <div className="flex items-center gap-1">
+                {/* 모드 전환 토글 */}
+                <div className="flex bg-zinc-100 dark:bg-zinc-700 rounded-lg p-0.5">
                   <button
                     onClick={() => setInputMode("gachaejeom")}
-                    className={`p-2 rounded-lg transition ${
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${
                       inputMode === "gachaejeom"
-                        ? "bg-amber-100 text-amber-600 dark:bg-amber-900/30"
-                        : "text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                        ? "bg-amber-500 text-white shadow"
+                        : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
                     }`}
-                    title="가채점 모드"
                   >
-                    <Zap className="w-4 h-4" />
+                    가채점
                   </button>
                   <button
                     onClick={() => setInputMode("seongjeokpyo")}
-                    className={`p-2 rounded-lg transition ${
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${
                       inputMode === "seongjeokpyo"
-                        ? "bg-green-100 text-green-600 dark:bg-green-900/30"
-                        : "text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                        ? "bg-green-500 text-white shadow"
+                        : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
                     }`}
-                    title="성적표 모드"
                   >
-                    <FileText className="w-4 h-4" />
+                    성적표
                   </button>
                 </div>
               </div>
