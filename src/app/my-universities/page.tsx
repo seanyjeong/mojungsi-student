@@ -66,6 +66,13 @@ import { shareScore, initKakao } from "@/lib/kakao-share";
 import ScoreTableModal from "@/components/ScoreTableModal";
 import UniversityLogo from "@/components/UniversityLogo";
 
+interface CutoffInfo {
+  expected_sunung_cut: number | null;
+  expected_total_cut: number | null;
+  prev_sunung_cut: number | null;
+  prev_total_cut: number | null;
+}
+
 interface SavedUniversity {
   id: number;
   U_ID: number;
@@ -86,6 +93,12 @@ interface SavedUniversity {
     실기반영비율: number;
     isWomensUniv?: boolean;
     단계별?: string | null;
+    is_relative_eval?: boolean;
+    practical_mode?: string;
+    practical_total?: number;
+    table_max_sum?: number;
+    deduction_unit?: number;
+    cutoff?: CutoffInfo | null;
   };
 }
 
@@ -119,6 +132,146 @@ type TabType = (typeof TABS)[number];
 
 const EXAM_TYPES = ["3월", "6월", "9월", "수능"] as const;
 type ExamType = (typeof EXAM_TYPES)[number];
+
+// 합격컷 표시 컴포넌트
+function CutoffDisplay({
+  cutoff,
+  sunungScore,
+  isRelativeEval,
+  stepType,
+  practicalMode,
+  practicalTotal,
+  tableMaxSum,
+  deductionUnit,
+}: {
+  cutoff: CutoffInfo;
+  sunungScore: number | null;
+  isRelativeEval: boolean;
+  stepType: number;
+  practicalMode: string;
+  practicalTotal: number;
+  tableMaxSum: number;
+  deductionUnit: number;
+}) {
+  const isStep = stepType > 0;
+
+  // 상대평가 + 일괄합산: 표시 안함
+  if (isRelativeEval && !isStep) {
+    return null;
+  }
+
+  // 상대평가 + 1단계: 수능컷만 표시
+  if (isRelativeEval && isStep) {
+    if (!cutoff.expected_sunung_cut) return null;
+    const meetsCut = sunungScore !== null && sunungScore >= cutoff.expected_sunung_cut;
+    return (
+      <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-700">
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-zinc-500">1단계 수능컷</span>
+          <span className="font-semibold">{cutoff.expected_sunung_cut}점</span>
+          {sunungScore !== null && (
+            meetsCut ? (
+              <span className="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded text-xs font-medium">
+                1단계 통과 예상
+              </span>
+            ) : (
+              <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded text-xs font-medium">
+                {(cutoff.expected_sunung_cut - sunungScore).toFixed(0)}점 부족
+              </span>
+            )
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // 절대평가: 총점컷 기준 감수 표시
+  if (!cutoff.expected_total_cut) return null;
+
+  // special 모드: 복잡한 공식이라 예상컷만 표시 (추후 개선)
+  if (practicalMode === 'special') {
+    const requiredPractical = sunungScore !== null
+      ? cutoff.expected_total_cut - sunungScore
+      : null;
+    return (
+      <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-700">
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-zinc-500">예상컷</span>
+          <span className="font-semibold">{cutoff.expected_total_cut}점</span>
+          {requiredPractical !== null && requiredPractical > 0 && (
+            <span className="text-xs text-amber-600 dark:text-amber-400">
+              (실기 {requiredPractical.toFixed(0)}점 이상)
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // basic 모드: 배점표 기반 감수 계산
+  if (sunungScore !== null && practicalTotal > 0 && tableMaxSum > 0 && deductionUnit > 0) {
+    const requiredPractical = cutoff.expected_total_cut - sunungScore;
+
+    if (requiredPractical <= 0) {
+      return (
+        <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-700">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🎯</span>
+            <span className="text-sm font-medium text-green-700 dark:text-green-400">
+              수능만으로 합격권!
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    // 필요 실기점수(환산) → 배점표 점수로 역산
+    // 환산공식: finalScore = (rawScore / tableMaxSum) * practicalTotal
+    // 역산: rawScore = finalScore * tableMaxSum / practicalTotal
+    const requiredRawScore = (requiredPractical * tableMaxSum) / practicalTotal;
+
+    // 배점표 만점에서 필요점수 빼면 여유 점수
+    const marginRaw = tableMaxSum - requiredRawScore;
+
+    // 배점표 기반 감수 계산 (1감 = deductionUnit점)
+    const deduction = marginRaw > 0 ? Math.floor(marginRaw / deductionUnit) : 0;
+
+    return (
+      <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-700">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">🎯</span>
+          {deduction > 0 ? (
+            <span className="text-sm font-medium text-amber-700 dark:text-amber-400">
+              {deduction}감 이내면 합격권!
+            </span>
+          ) : (
+            <span className="text-sm font-medium text-red-600 dark:text-red-400">
+              만점 필요
+            </span>
+          )}
+          {isStep && cutoff.expected_sunung_cut && sunungScore >= cutoff.expected_sunung_cut && (
+            <span className="text-xs text-green-600 dark:text-green-400">(1단계 통과)</span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // 수능점수 없으면 컷 정보만 표시
+  return (
+    <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-700">
+      <div className="flex items-center gap-2 text-sm">
+        <span className="text-zinc-500">예상컷</span>
+        <span className="font-semibold">{cutoff.expected_total_cut}점</span>
+        {isStep && cutoff.expected_sunung_cut && (
+          <span className="text-xs text-zinc-400">
+            (1단계 {cutoff.expected_sunung_cut}점)
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function MyUniversitiesPage() {
   const router = useRouter();
@@ -620,6 +773,20 @@ export default function MyUniversitiesPage() {
                     </p>
                   </div>
                 </div>
+
+                {/* 합격컷 정보 */}
+                {s.university.cutoff && (
+                  <CutoffDisplay
+                    cutoff={s.university.cutoff}
+                    sunungScore={sunungScore}
+                    isRelativeEval={s.university.is_relative_eval || false}
+                    stepType={Number(s.university.단계별) || 0}
+                    practicalMode={s.university.practical_mode || 'basic'}
+                    practicalTotal={s.university.practical_total || 0}
+                    tableMaxSum={s.university.table_max_sum || 0}
+                    deductionUnit={s.university.deduction_unit || 0}
+                  />
+                )}
               </div>
             );
           })}
