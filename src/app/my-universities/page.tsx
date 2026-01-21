@@ -73,6 +73,13 @@ interface CutoffInfo {
   prev_total_cut: number | null;
 }
 
+interface PracticalByExam {
+  [examType: string]: {
+    score: number;
+    events: EventRecord[];
+  } | null;
+}
+
 interface SavedUniversity {
   id: number;
   U_ID: number;
@@ -80,6 +87,7 @@ interface SavedUniversity {
   naesin_score: number | null;
   practical_score: number | null;
   practical_records: EventRecord[] | null;
+  practical_by_exam?: PracticalByExam | null; // 시험별 실기점수
   memo: string | null;
   university: {
     U_NM: string;
@@ -444,7 +452,7 @@ export default function MyUniversitiesPage() {
     }
   };
 
-  // 전 시험 대비 점수 차이 계산
+  // 전 시험 대비 점수 차이 계산 (수능 환산)
   const getScoreDiff = (uId: number): { diff: number; prevExam: ExamType } | null => {
     if (!selectedExam) return null;
     const prevExam = getPreviousExamType(selectedExam);
@@ -456,6 +464,20 @@ export default function MyUniversitiesPage() {
     if (currentScore == null || prevScore == null) return null;
 
     return { diff: currentScore - prevScore, prevExam };
+  };
+
+  // 전 시험 대비 실기점수 차이 계산
+  const getPracticalScoreDiff = (s: SavedUniversity): { diff: number; prevExam: ExamType } | null => {
+    if (!selectedExam) return null;
+    const prevExam = getPreviousExamType(selectedExam);
+    if (!prevExam) return null;
+
+    const currentPractical = s.practical_by_exam?.[selectedExam]?.score;
+    const prevPractical = s.practical_by_exam?.[prevExam]?.score;
+
+    if (currentPractical == null || prevPractical == null) return null;
+
+    return { diff: currentPractical - prevPractical, prevExam };
   };
 
   // 탭별 대학 필터링
@@ -657,6 +679,11 @@ export default function MyUniversitiesPage() {
             const hasNaesin = s.university.내신반영비율 > 0;
             const hasScoreData = selectedExamScore !== null;
             const scoreDiff = getScoreDiff(s.U_ID);
+            const practicalDiff = getPracticalScoreDiff(s);
+            // 현재 시험의 실기점수 (practical_by_exam 우선, 없으면 기존 practical_score)
+            const currentPracticalScore = selectedExam
+              ? s.practical_by_exam?.[selectedExam]?.score ?? s.practical_score
+              : s.practical_score;
 
             return (
               <div
@@ -752,9 +779,28 @@ export default function MyUniversitiesPage() {
                     <div className="bg-purple-50 dark:bg-purple-900/30 rounded-lg py-1 px-2 text-center min-w-[50px]">
                       <p className="text-[9px] text-purple-500 dark:text-purple-400">실기</p>
                       <p className="text-xs font-semibold text-purple-700 dark:text-purple-300">
-                        {s.practical_score ? Number(s.practical_score).toFixed(0) : "-"}
+                        {currentPracticalScore ? Number(currentPracticalScore).toFixed(0) : "-"}
                       </p>
                     </div>
+                    {/* 전 시험 대비 실기점수 변화 */}
+                    {practicalDiff && (
+                      <div className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium ${
+                        practicalDiff.diff > 0
+                          ? "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400"
+                          : practicalDiff.diff < 0
+                            ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                            : "bg-zinc-100 dark:bg-zinc-700 text-zinc-500"
+                      }`}>
+                        {practicalDiff.diff > 0 ? (
+                          <TrendingUp className="w-3 h-3" />
+                        ) : practicalDiff.diff < 0 ? (
+                          <TrendingDown className="w-3 h-3" />
+                        ) : (
+                          <Minus className="w-3 h-3" />
+                        )}
+                        <span>{practicalDiff.diff > 0 ? "+" : ""}{practicalDiff.diff.toFixed(0)}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* 총점 - 오른쪽 끝 */}
@@ -895,16 +941,30 @@ function UniversityModal({
     }
   }, [saved.U_ID, hasPractical, userGender, activeYear]);
 
-  // 저장된 실기 기록 복원
+  // 저장된 실기 기록 복원 (시험별)
   useEffect(() => {
-    if (saved.practical_records) {
+    // 시험별 데이터가 있으면 우선 사용
+    const examType = selectedExam || "수능";
+    const examData = saved.practical_by_exam?.[examType];
+
+    if (examData?.events) {
+      const records: Record<string, string> = {};
+      for (const rec of examData.events) {
+        records[rec.event] = rec.record || "";
+      }
+      setPracticalRecords(records);
+    } else if (saved.practical_records) {
+      // 기존 데이터 (하위 호환)
       const records: Record<string, string> = {};
       for (const rec of saved.practical_records) {
         records[rec.event] = rec.record || "";
       }
       setPracticalRecords(records);
+    } else {
+      // 데이터 없으면 초기화
+      setPracticalRecords({});
     }
-  }, [saved.practical_records]);
+  }, [saved.practical_by_exam, saved.practical_records, selectedExam]);
 
   // 실기 점수 계산
   const calculatePractical = useCallback(() => {
@@ -965,6 +1025,7 @@ function UniversityModal({
           score: ev.score,
           deduction: ev.deduction,
         })),
+        exam_type: selectedExam || "수능", // 시험별 저장
       });
       onUpdate();
       onClose();

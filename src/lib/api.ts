@@ -373,6 +373,7 @@ export async function updateSavedUniversity(
       score?: number;
       deduction?: number;
     }>;
+    exam_type?: string; // "3월" | "6월" | "9월" | "수능"
   }
 ) {
   const response = await fetch(`${API_BASE_URL}/saas/universities/${uId}`, {
