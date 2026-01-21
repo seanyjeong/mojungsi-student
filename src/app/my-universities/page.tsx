@@ -340,12 +340,56 @@ export default function MyUniversitiesPage() {
     return savedScores.find(s => s.exam_type === selectedExam)?.scores || null;
   }, [savedScores, selectedExam]);
 
-  // 시험 선택 또는 대학 목록이 변경될 때 점수 계산
+  // 페이지 로드 시 모든 시험 점수 미리 계산
   useEffect(() => {
-    if (selectedExam && selectedExamScore && saved.length > 0 && !calculatedScores[selectedExam]) {
-      calculateScoresForExam(selectedExam, selectedExamScore);
+    if (savedScores.length > 0 && saved.length > 0) {
+      calculateAllExamScores();
     }
-  }, [selectedExam, selectedExamScore, saved]);
+  }, [savedScores, saved]);
+
+  // 모든 저장된 시험의 점수 계산
+  const calculateAllExamScores = async () => {
+    const token = getToken();
+    if (!token || saved.length === 0) return;
+
+    setCalculating(true);
+    try {
+      // 저장된 모든 시험에 대해 계산
+      const allResults: CalculatedScores = {};
+
+      for (const scoreData of savedScores) {
+        const examType = scoreData.exam_type as ExamType;
+        if (!EXAM_TYPES.includes(examType)) continue;
+        if (allResults[examType]) continue; // 이미 계산됨
+
+        const convertedScores = convertDbScoresToScoreForm(scoreData.scores);
+        const results: { [U_ID: number]: number | null } = {};
+
+        await Promise.all(
+          saved.map(async (s) => {
+            try {
+              const result = await calculateScore(s.U_ID, convertedScores, activeYear, examType);
+              if (result.success && result.result?.totalScore) {
+                results[s.U_ID] = parseFloat(result.result.totalScore);
+              } else {
+                results[s.U_ID] = null;
+              }
+            } catch (err) {
+              results[s.U_ID] = null;
+            }
+          })
+        );
+
+        allResults[examType] = results;
+      }
+
+      setCalculatedScores(allResults);
+    } catch (err) {
+      console.error("Failed to calculate all scores:", err);
+    } finally {
+      setCalculating(false);
+    }
+  };
 
   const loadData = async () => {
     const token = getToken();
@@ -373,46 +417,6 @@ export default function MyUniversitiesPage() {
     }
   };
 
-  // 특정 시험의 모든 저장 대학 점수 계산
-  const calculateScoresForExam = async (examType: ExamType, scores: ScoreForm) => {
-    const token = getToken();
-    if (!token || saved.length === 0) return;
-
-    setCalculating(true);
-    try {
-      const results: { [U_ID: number]: number | null } = {};
-      // DB 형식(한글 키)을 API 형식(영어 키)으로 변환
-      const convertedScores = convertDbScoresToScoreForm(scores);
-
-      // 각 대학별로 점수 계산 (병렬 처리)
-      await Promise.all(
-        saved.map(async (s) => {
-          try {
-            // examType 전달하여 해당 시험의 최고표점/변표 사용
-            const result = await calculateScore(s.U_ID, convertedScores, activeYear, examType);
-            if (result.success && result.result?.totalScore) {
-              results[s.U_ID] = parseFloat(result.result.totalScore);
-            } else {
-              results[s.U_ID] = null;
-            }
-          } catch (err) {
-            console.error(`Failed to calculate for U_ID ${s.U_ID}:`, err);
-            results[s.U_ID] = null;
-          }
-        })
-      );
-
-      setCalculatedScores(prev => ({
-        ...prev,
-        [examType]: results,
-      }));
-    } catch (err) {
-      console.error("Failed to calculate scores:", err);
-    } finally {
-      setCalculating(false);
-    }
-  };
-
   // 이전 시험 타입 가져오기
   const getPreviousExamType = (current: ExamType): ExamType | null => {
     const order: ExamType[] = ["3월", "6월", "9월", "수능"];
@@ -420,24 +424,9 @@ export default function MyUniversitiesPage() {
     return idx > 0 ? order[idx - 1] : null;
   };
 
-  // 시험 토글 변경 시
+  // 시험 토글 변경 시 (점수는 이미 계산되어 있음)
   const handleExamChange = (examType: ExamType) => {
     setSelectedExam(examType);
-
-    // 해당 시험의 점수가 아직 계산되지 않았고 성적이 있으면 계산
-    const examScore = savedScores.find(s => s.exam_type === examType)?.scores;
-    if (examScore && !calculatedScores[examType]) {
-      calculateScoresForExam(examType, examScore);
-    }
-
-    // 이전 시험 점수도 계산 (비교용)
-    const prevExam = getPreviousExamType(examType);
-    if (prevExam) {
-      const prevScore = savedScores.find(s => s.exam_type === prevExam)?.scores;
-      if (prevScore && !calculatedScores[prevExam]) {
-        calculateScoresForExam(prevExam, prevScore);
-      }
-    }
   };
 
   const handleRemove = async (uId: number) => {
