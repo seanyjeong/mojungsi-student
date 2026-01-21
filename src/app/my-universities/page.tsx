@@ -514,20 +514,44 @@ export default function MyUniversitiesPage() {
   }, [savedScores]);
 
   // 총점 계산 헬퍼 (실시간 계산 사용)
-  const calcTotalScore = (s: SavedUniversity) => {
+  const calcTotalScore = (s: SavedUniversity, examType?: ExamType | null) => {
+    const exam = examType ?? selectedExam;
     let total = 0;
 
     // 실시간 계산된 수능 점수 사용
-    if (selectedExam) {
-      const calcScore = calculatedScores[selectedExam]?.[s.U_ID];
+    if (exam) {
+      const calcScore = calculatedScores[exam]?.[s.U_ID];
       if (calcScore !== null && calcScore !== undefined) {
         total += calcScore;
       }
     }
 
     if (s.naesin_score) total += Number(s.naesin_score);
-    if (s.practical_score) total += Number(s.practical_score);
+
+    // 해당 시험의 실기점수 사용 (practical_by_exam 우선)
+    const practicalScore = exam
+      ? s.practical_by_exam?.[exam]?.score ?? s.practical_score
+      : s.practical_score;
+    if (practicalScore) total += Number(practicalScore);
+
     return total;
+  };
+
+  // 전 시험 대비 총점 차이 계산
+  const getTotalScoreDiff = (s: SavedUniversity): { diff: number; prevExam: ExamType } | null => {
+    if (!selectedExam) return null;
+    const prevExam = getPreviousExamType(selectedExam);
+    if (!prevExam) return null;
+
+    // 이전 시험 성적이 있어야 비교 가능
+    if (!savedScores.some(sc => sc.exam_type === prevExam)) return null;
+
+    const currentTotal = calcTotalScore(s, selectedExam);
+    const prevTotal = calcTotalScore(s, prevExam);
+
+    if (currentTotal === 0 || prevTotal === 0) return null;
+
+    return { diff: currentTotal - prevTotal, prevExam };
   };
 
   // 수능 환산점수 가져오기
@@ -680,6 +704,7 @@ export default function MyUniversitiesPage() {
             const hasScoreData = selectedExamScore !== null;
             const scoreDiff = getScoreDiff(s.U_ID);
             const practicalDiff = getPracticalScoreDiff(s);
+            const totalScoreDiff = getTotalScoreDiff(s);
             // 현재 시험의 실기점수 (practical_by_exam 우선, 없으면 기존 practical_score)
             const currentPracticalScore = selectedExam
               ? s.practical_by_exam?.[selectedExam]?.score ?? s.practical_score
@@ -817,6 +842,25 @@ export default function MyUniversitiesPage() {
                         "-"
                       )}
                     </p>
+                    {/* 전 시험 대비 총점 변화 */}
+                    {totalScoreDiff && (
+                      <div className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium mt-1 ${
+                        totalScoreDiff.diff > 0
+                          ? "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
+                          : totalScoreDiff.diff < 0
+                            ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                            : "bg-zinc-100 dark:bg-zinc-700 text-zinc-500"
+                      }`}>
+                        {totalScoreDiff.diff > 0 ? (
+                          <TrendingUp className="w-3 h-3" />
+                        ) : totalScoreDiff.diff < 0 ? (
+                          <TrendingDown className="w-3 h-3" />
+                        ) : (
+                          <Minus className="w-3 h-3" />
+                        )}
+                        <span>{totalScoreDiff.diff > 0 ? "+" : ""}{totalScoreDiff.diff.toFixed(1)}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
