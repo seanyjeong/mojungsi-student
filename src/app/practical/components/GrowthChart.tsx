@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { ResponsiveLine } from "@nivo/line";
-import { TrendingUp, TrendingDown, Trophy, Activity, ChevronDown } from "lucide-react";
+import { Trophy, Activity, ChevronDown } from "lucide-react";
 import { getToken } from "@/lib/auth";
 import { getPracticalHistory, EventType, HistoryData } from "@/lib/api";
 
@@ -130,11 +130,6 @@ export default function GrowthChart({ eventTypes, records }: GrowthChartProps) {
             {selectedEventType?.unit && (
               <span className="text-sm text-zinc-400">({selectedEventType.unit})</span>
             )}
-            {selectedEventType?.direction === "lower" && (
-              <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-2 py-0.5 rounded-full">
-                낮을수록 좋음
-              </span>
-            )}
           </div>
           <ChevronDown
             className={`w-5 h-5 text-zinc-400 transition-transform ${
@@ -169,11 +164,6 @@ export default function GrowthChart({ eventTypes, records }: GrowthChartProps) {
                       <span className="text-sm text-zinc-400">({event.unit})</span>
                     )}
                   </div>
-                  {event.direction === "lower" ? (
-                    <TrendingDown className="w-4 h-4 text-green-500" />
-                  ) : (
-                    <TrendingUp className="w-4 h-4 text-blue-500" />
-                  )}
                 </button>
               ))}
             </div>
@@ -226,11 +216,7 @@ export default function GrowthChart({ eventTypes, records }: GrowthChartProps) {
               </div>
               <div className="bg-white dark:bg-zinc-800 rounded-xl p-4 shadow-sm">
                 <div className="flex items-center gap-2 text-zinc-500 text-sm mb-1">
-                  {selectedEventType?.direction === "lower" ? (
-                    <TrendingDown className="w-4 h-4" />
-                  ) : (
-                    <TrendingUp className="w-4 h-4" />
-                  )}
+                  <Activity className="w-4 h-4" />
                   평균
                 </div>
                 <p className="text-xl font-bold">
@@ -248,11 +234,7 @@ export default function GrowthChart({ eventTypes, records }: GrowthChartProps) {
           {/* 그래프 */}
           <div className="bg-white dark:bg-zinc-800 rounded-xl p-4 shadow-sm">
             <h3 className="font-bold mb-4 flex items-center gap-2">
-              {selectedEventType?.direction === "lower" ? (
-                <TrendingDown className="w-5 h-5 text-green-500" />
-              ) : (
-                <TrendingUp className="w-5 h-5 text-blue-500" />
-              )}
+              <Activity className="w-5 h-5 text-blue-500" />
               {selectedEvent} 성장 그래프
             </h3>
             <div className="h-64">
@@ -344,11 +326,6 @@ export default function GrowthChart({ eventTypes, records }: GrowthChartProps) {
                 }}
               />
             </div>
-            {selectedEventType?.direction === "lower" && (
-              <p className="text-xs text-zinc-500 text-center mt-2">
-                이 종목은 낮을수록 좋은 기록입니다 (그래프가 위로 갈수록 좋음)
-              </p>
-            )}
           </div>
 
           {/* 기록 목록 */}
