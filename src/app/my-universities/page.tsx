@@ -953,8 +953,8 @@ function UniversityModal({
         records[rec.event] = rec.record || "";
       }
       setPracticalRecords(records);
-    } else if (saved.practical_records) {
-      // 기존 데이터 (하위 호환)
+    } else if (saved.practical_records && Array.isArray(saved.practical_records)) {
+      // 기존 데이터 (하위 호환 - 배열 형태만)
       const records: Record<string, string> = {};
       for (const rec of saved.practical_records) {
         records[rec.event] = rec.record || "";
