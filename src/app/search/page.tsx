@@ -83,6 +83,7 @@ interface University {
   subjectDisplay?: SubjectDisplay;
   isWomensUniv?: boolean;
   selectionRules?: SelectionRule | SelectionRule[] | null;
+  단계별?: string | null;
 }
 
 // 택N 계산 함수
@@ -147,6 +148,7 @@ function transformApiResponse(apiData: any[]): University[] {
         실기반영비율: silgiRatio || 0,
         subjectDisplay: dept.subject_display || undefined,
         isWomensUniv: univ.isWomensUniv || false,
+        단계별: dept.step_type || null,
       });
     }
   }
@@ -704,6 +706,11 @@ const UniversityCard = memo(function UniversityCard({
         <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-medium">
           {univ.모집군}
         </span>
+        {univ.단계별 && Number(univ.단계별) > 0 && (
+          <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded-lg text-xs font-medium">
+            1단계 {univ.단계별}배수
+          </span>
+        )}
       </div>
 
       {/* Ratio Tags */}

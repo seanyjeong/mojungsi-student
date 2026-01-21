@@ -85,6 +85,7 @@ interface SavedUniversity {
     내신반영비율: number;
     실기반영비율: number;
     isWomensUniv?: boolean;
+    단계별?: string | null;
   };
 }
 
@@ -529,11 +530,16 @@ export default function MyUniversitiesPage() {
                   </div>
                 </div>
 
-                {/* 지역 태그 + 배점표 버튼 */}
+                {/* 지역 태그 + 1단계 + 배점표 버튼 */}
                 <div className="flex items-center gap-2 mt-2">
                   <span className="inline-flex items-center gap-1 px-2 py-1 bg-zinc-100 dark:bg-zinc-700 rounded text-xs">
                     <MapPin className="w-3 h-3" /> {s.university.지역}
                   </span>
+                  {s.university.단계별 && Number(s.university.단계별) > 0 && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded text-xs font-medium">
+                      1단계 {s.university.단계별}배수
+                    </span>
+                  )}
                   {s.university.실기반영비율 > 0 && s.university.실기종목 && (
                     <button
                       onClick={(e) => {
