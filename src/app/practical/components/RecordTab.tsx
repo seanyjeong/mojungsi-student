@@ -95,11 +95,6 @@ export default function RecordTab({ records, eventTypes, onRefresh }: RecordTabP
                         ({eventType.unit})
                       </span>
                     )}
-                    {eventType?.direction === "lower" && (
-                      <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">
-                        낮을수록 좋음
-                      </span>
-                    )}
                   </h3>
                 </div>
                 <div className="divide-y dark:divide-zinc-700">
@@ -270,9 +265,6 @@ function RecordModal({
               }
               className="w-full px-4 py-3 border rounded-xl dark:bg-zinc-700 dark:border-zinc-600"
             />
-            {selectedEventType?.direction === "lower" && (
-              <p className="text-xs text-orange-500 mt-1">이 종목은 낮을수록 좋습니다</p>
-            )}
           </div>
 
           <div>
