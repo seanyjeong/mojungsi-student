@@ -20,7 +20,7 @@ import {
   EventRecord,
 } from "@/lib/practical-calc";
 import { ScoreForm } from "@/types";
-import { Heart, MapPin, X, Save, Loader2, Share2, TableProperties, AlertCircle, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Heart, MapPin, X, Save, Loader2, Share2, TableProperties, AlertCircle } from "lucide-react";
 
 // DB 형식(한글)을 API 형식(ScoreForm)으로 변환
 function convertDbScoresToScoreForm(data: any): ScoreForm {
@@ -758,77 +758,55 @@ export default function MyUniversitiesPage() {
                   )}
                 </div>
 
-                {/* 점수 영역 - 한 줄 */}
-                <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-700 flex items-center gap-3">
-                  {/* 세부 점수 카드 */}
-                  <div className="flex gap-1.5 items-center">
-                    <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg py-1 px-2 text-center min-w-[50px]">
-                      <p className="text-[9px] text-blue-500 dark:text-blue-400">{selectedExam || "수능"}</p>
-                      <p className="text-xs font-semibold text-blue-700 dark:text-blue-300">
-                        {calculating ? (
-                          <Loader2 className="w-3 h-3 animate-spin mx-auto" />
-                        ) : hasScoreData && sunungScore !== null ? (
-                          sunungScore.toFixed(0)
-                        ) : (
-                          "-"
-                        )}
-                      </p>
-                    </div>
-                    {/* 전 시험 대비 점수 변화 */}
+                {/* 점수 영역 */}
+                <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-700 flex items-center gap-2">
+                  {/* 수능 */}
+                  <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg py-1.5 px-2 text-center min-w-[52px]">
+                    <p className="text-[9px] text-blue-500 dark:text-blue-400">{selectedExam || "수능"}</p>
+                    <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                      {calculating ? (
+                        <Loader2 className="w-3 h-3 animate-spin mx-auto" />
+                      ) : hasScoreData && sunungScore !== null ? (
+                        sunungScore.toFixed(0)
+                      ) : (
+                        "-"
+                      )}
+                    </p>
                     {scoreDiff && (
-                      <div className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium ${
-                        scoreDiff.diff > 0
-                          ? "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400"
-                          : scoreDiff.diff < 0
-                            ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                            : "bg-zinc-100 dark:bg-zinc-700 text-zinc-500"
+                      <p className={`text-[10px] font-medium ${
+                        scoreDiff.diff > 0 ? "text-red-500" : scoreDiff.diff < 0 ? "text-blue-500" : "text-zinc-400"
                       }`}>
-                        {scoreDiff.diff > 0 ? (
-                          <TrendingUp className="w-3 h-3" />
-                        ) : scoreDiff.diff < 0 ? (
-                          <TrendingDown className="w-3 h-3" />
-                        ) : (
-                          <Minus className="w-3 h-3" />
-                        )}
-                        <span>{scoreDiff.diff > 0 ? "+" : ""}{scoreDiff.diff.toFixed(1)}</span>
-                      </div>
-                    )}
-                    {hasNaesin && (
-                      <div className="bg-green-50 dark:bg-green-900/30 rounded-lg py-1 px-2 text-center min-w-[50px]">
-                        <p className="text-[9px] text-green-500 dark:text-green-400">내신</p>
-                        <p className="text-xs font-semibold text-green-700 dark:text-green-300">
-                          {s.naesin_score ? Number(s.naesin_score).toFixed(0) : "-"}
-                        </p>
-                      </div>
-                    )}
-                    <div className="bg-purple-50 dark:bg-purple-900/30 rounded-lg py-1 px-2 text-center min-w-[50px]">
-                      <p className="text-[9px] text-purple-500 dark:text-purple-400">실기</p>
-                      <p className="text-xs font-semibold text-purple-700 dark:text-purple-300">
-                        {currentPracticalScore ? Number(currentPracticalScore).toFixed(0) : "-"}
+                        {scoreDiff.diff > 0 ? "↑" : scoreDiff.diff < 0 ? "↓" : "−"}{Math.abs(scoreDiff.diff).toFixed(1)}
                       </p>
-                    </div>
-                    {/* 전 시험 대비 실기점수 변화 */}
-                    {practicalDiff && (
-                      <div className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium ${
-                        practicalDiff.diff > 0
-                          ? "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400"
-                          : practicalDiff.diff < 0
-                            ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                            : "bg-zinc-100 dark:bg-zinc-700 text-zinc-500"
-                      }`}>
-                        {practicalDiff.diff > 0 ? (
-                          <TrendingUp className="w-3 h-3" />
-                        ) : practicalDiff.diff < 0 ? (
-                          <TrendingDown className="w-3 h-3" />
-                        ) : (
-                          <Minus className="w-3 h-3" />
-                        )}
-                        <span>{practicalDiff.diff > 0 ? "+" : ""}{practicalDiff.diff.toFixed(0)}</span>
-                      </div>
                     )}
                   </div>
 
-                  {/* 총점 - 오른쪽 끝 */}
+                  {/* 내신 */}
+                  {hasNaesin && (
+                    <div className="bg-green-50 dark:bg-green-900/30 rounded-lg py-1.5 px-2 text-center min-w-[52px]">
+                      <p className="text-[9px] text-green-500 dark:text-green-400">내신</p>
+                      <p className="text-sm font-semibold text-green-700 dark:text-green-300">
+                        {s.naesin_score ? Number(s.naesin_score).toFixed(0) : "-"}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* 실기 */}
+                  <div className="bg-purple-50 dark:bg-purple-900/30 rounded-lg py-1.5 px-2 text-center min-w-[52px]">
+                    <p className="text-[9px] text-purple-500 dark:text-purple-400">실기</p>
+                    <p className="text-sm font-semibold text-purple-700 dark:text-purple-300">
+                      {currentPracticalScore ? Number(currentPracticalScore).toFixed(0) : "-"}
+                    </p>
+                    {practicalDiff && (
+                      <p className={`text-[10px] font-medium ${
+                        practicalDiff.diff > 0 ? "text-red-500" : practicalDiff.diff < 0 ? "text-blue-500" : "text-zinc-400"
+                      }`}>
+                        {practicalDiff.diff > 0 ? "↑" : practicalDiff.diff < 0 ? "↓" : "−"}{Math.abs(practicalDiff.diff).toFixed(0)}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* 총점 */}
                   <div className="flex-1 text-right">
                     <p className="text-2xl font-bold text-zinc-800 dark:text-zinc-100">
                       {calculating ? (
@@ -842,24 +820,12 @@ export default function MyUniversitiesPage() {
                         "-"
                       )}
                     </p>
-                    {/* 전 시험 대비 총점 변화 */}
                     {totalScoreDiff && (
-                      <div className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium mt-1 ${
-                        totalScoreDiff.diff > 0
-                          ? "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
-                          : totalScoreDiff.diff < 0
-                            ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                            : "bg-zinc-100 dark:bg-zinc-700 text-zinc-500"
+                      <p className={`text-xs font-medium ${
+                        totalScoreDiff.diff > 0 ? "text-red-500" : totalScoreDiff.diff < 0 ? "text-blue-500" : "text-zinc-400"
                       }`}>
-                        {totalScoreDiff.diff > 0 ? (
-                          <TrendingUp className="w-3 h-3" />
-                        ) : totalScoreDiff.diff < 0 ? (
-                          <TrendingDown className="w-3 h-3" />
-                        ) : (
-                          <Minus className="w-3 h-3" />
-                        )}
-                        <span>{totalScoreDiff.diff > 0 ? "+" : ""}{totalScoreDiff.diff.toFixed(1)}</span>
-                      </div>
+                        {totalScoreDiff.diff > 0 ? "↑" : totalScoreDiff.diff < 0 ? "↓" : "−"}{Math.abs(totalScoreDiff.diff).toFixed(1)}
+                      </p>
                     )}
                   </div>
                 </div>
