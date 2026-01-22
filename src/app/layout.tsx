@@ -4,6 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 import { BottomNav } from "@/components/bottom-nav";
 import { Header } from "@/components/header";
+import { ServiceWorkerRegister } from "@/components/service-worker-register";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,8 +17,25 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "정시 환산점수 계산기",
+  title: "CHEJUMP - 체대입시 정시 계산기",
   description: "체대입시 수능 환산점수 계산 서비스",
+  manifest: "/manifest.json",
+  themeColor: "#0e4375",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "CHEJUMP",
+  },
+  icons: {
+    icon: [
+      { url: "/icons/icon_192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon_512x512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/icons/icon_152x152.png", sizes: "152x152", type: "image/png" },
+      { url: "/icons/icon_192x192.png", sizes: "192x192", type: "image/png" },
+    ],
+  },
 };
 
 export default function RootLayout({
@@ -35,6 +53,7 @@ export default function RootLayout({
           <main className="max-w-2xl mx-auto px-4 py-6">{children}</main>
         </div>
         <BottomNav />
+        <ServiceWorkerRegister />
         <Script
           src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"
           integrity="sha384-TiCUE00h649CAMonG018J2ujOgDKW/kVWlChEuu4jK2vxfAAD0eZxzCKakxg55G4"

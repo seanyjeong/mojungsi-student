@@ -97,7 +97,7 @@ export default function HomePage() {
     <div className="space-y-6">
       {/* Status Card */}
       <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl p-6 text-white">
-        <h1 className="text-xl font-bold mb-2">정시 환산점수 계산기</h1>
+        <h1 className="text-xl font-bold mb-2">CHEJUMP</h1>
         <p className="text-sm opacity-90">
           {hasScores
             ? "성적이 입력되어 있습니다. 대학 검색에서 환산점수를 확인하세요."

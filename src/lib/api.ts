@@ -2,6 +2,35 @@ import { ScoreForm, SingleCalculationResult, BatchCalculationResult } from "@/ty
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8900";
 
+// ========== Auth Fetch Wrapper ==========
+
+/**
+ * 인증이 필요한 API 호출용 fetch wrapper
+ * 401 에러 시 자동으로 로그아웃 + 로그인 페이지로 리다이렉트
+ */
+async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const response = await fetch(url, options);
+
+  if (response.status === 401) {
+    // 토큰 만료 - 로그아웃 처리
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("user");
+
+      // auth-change 이벤트 발생시켜서 UI 업데이트
+      window.dispatchEvent(new Event("auth-change"));
+
+      // 현재 페이지가 로그인 콜백이 아니면 홈으로 리다이렉트
+      if (!window.location.pathname.includes("/auth/")) {
+        alert("로그인이 만료되었습니다. 다시 로그인해주세요.");
+        window.location.href = "/";
+      }
+    }
+  }
+
+  return response;
+}
+
 // ========== 활성 연도 API ==========
 
 let cachedActiveYear: number | null = null;
@@ -158,7 +187,7 @@ export async function kakaoCallback(code: string): Promise<{
 }
 
 export async function getMe(token: string) {
-  const response = await fetch(`${API_BASE_URL}/saas/auth/me`, {
+  const response = await authFetch(`${API_BASE_URL}/saas/auth/me`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -174,7 +203,7 @@ export async function getMe(token: string) {
 // ========== Profile API ==========
 
 export async function getProfile(token: string) {
-  const response = await fetch(`${API_BASE_URL}/saas/profile`, {
+  const response = await authFetch(`${API_BASE_URL}/saas/profile`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok) throw new Error("Failed to get profile");
@@ -200,7 +229,7 @@ export async function updateProfile(
 // ========== Scores API ==========
 
 export async function getScores(token: string) {
-  const response = await fetch(`${API_BASE_URL}/saas/scores`, {
+  const response = await authFetch(`${API_BASE_URL}/saas/scores`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok) throw new Error("Failed to get scores");
@@ -340,7 +369,7 @@ export async function saveScore(
 // ========== Saved Universities API ==========
 
 export async function getSavedUniversities(token: string) {
-  const response = await fetch(`${API_BASE_URL}/saas/universities/saved`, {
+  const response = await authFetch(`${API_BASE_URL}/saas/universities/saved`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok) throw new Error("Failed to get saved universities");

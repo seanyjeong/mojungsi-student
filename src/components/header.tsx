@@ -9,9 +9,14 @@ export function Header() {
   return (
     <header className="glass sticky top-0 z-10">
       <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-        <h1 className="text-lg font-bold text-zinc-900 dark:text-white">
-          정시 환산점수 계산기
-        </h1>
+        <Image
+          src="/logo.png"
+          alt="CHEJUMP"
+          width={140}
+          height={40}
+          className="h-8 w-auto"
+          priority
+        />
 
         <div className="flex items-center gap-2">
           {isLoading ? (
