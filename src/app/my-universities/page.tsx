@@ -1268,6 +1268,7 @@ function UniversityModal({
               </label>
               <input
                 type="number"
+                inputMode="numeric"
                 value={naesinScore}
                 onChange={(e) => setNaesinScore(e.target.value)}
                 placeholder="내신 점수를 입력하세요"

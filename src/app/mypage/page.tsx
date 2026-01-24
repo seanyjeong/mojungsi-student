@@ -1123,6 +1123,7 @@ function ScoreCard({
               <label className="text-xs text-zinc-500 mb-1 block">원점수</label>
               <input
                 type="number"
+                inputMode="numeric"
                 value={getValue("원점수")}
                 onChange={(e) => setValue("원점수", e.target.value ? parseInt(e.target.value) : "")}
                 className="w-full px-3 py-2 border rounded-lg text-sm bg-zinc-50 dark:bg-zinc-700 dark:border-zinc-600"
@@ -1168,6 +1169,7 @@ function ScoreCard({
                     <label className="text-xs text-zinc-500 mb-1 block">표준점수</label>
                     <input
                       type="number"
+                      inputMode="numeric"
                       value={getValue("표준점수")}
                       onChange={(e) => setValue("표준점수", e.target.value ? parseInt(e.target.value) : "")}
                       className="w-full px-3 py-2 border rounded-lg text-sm bg-zinc-50 dark:bg-zinc-700 dark:border-zinc-600"
@@ -1177,6 +1179,7 @@ function ScoreCard({
                     <label className="text-xs text-zinc-500 mb-1 block">백분위</label>
                     <input
                       type="number"
+                      inputMode="numeric"
                       value={getValue("백분위")}
                       onChange={(e) => setValue("백분위", e.target.value ? parseInt(e.target.value) : "")}
                       className="w-full px-3 py-2 border rounded-lg text-sm bg-zinc-50 dark:bg-zinc-700 dark:border-zinc-600"
@@ -1188,6 +1191,7 @@ function ScoreCard({
                 <label className="text-xs text-zinc-500 mb-1 block">등급</label>
                 <input
                   type="number"
+                  inputMode="numeric"
                   min="1"
                   max="9"
                   value={getValue("등급")}
