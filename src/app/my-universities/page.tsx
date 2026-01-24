@@ -1221,6 +1221,7 @@ function UniversityModal({
                           <p className="text-sm font-medium">{event}</p>
                           <input
                             type="text"
+                            inputMode="decimal"
                             value={practicalRecords[event] || ""}
                             onChange={(e) =>
                               handleRecordChange(event, e.target.value)

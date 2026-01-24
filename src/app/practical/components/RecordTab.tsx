@@ -256,6 +256,7 @@ function RecordModal({
             </label>
             <input
               type="text"
+              inputMode="decimal"
               value={recordValue}
               onChange={(e) => setRecordValue(e.target.value)}
               placeholder={
