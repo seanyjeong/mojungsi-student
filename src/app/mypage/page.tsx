@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth, getToken } from "@/lib/auth";
+import { useAuth, getToken, useRequireAuth } from "@/lib/auth";
 import { getProfile, updateProfile, getScores, saveScore, withdrawUser, getActiveYear, getActiveExam, interpolateScores, saveGachaejeomScore } from "@/lib/api";
 import { ScoreForm } from "@/types";
 import { User, Pencil, Save, Book, Calculator, Globe, Landmark, Search, AlertTriangle, X, CheckCircle, XCircle, Hand, Info, RefreshCw } from "lucide-react";
@@ -94,7 +94,8 @@ interface EstimatedScores {
 
 export default function MyPage() {
   const router = useRouter();
-  const { user, isLoading, isLoggedIn, logout } = useAuth();
+  const { isLoggedIn, isLoading, isRedirecting } = useRequireAuth();
+  const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<"info" | "scores">("info");
   const [profile, setProfile] = useState<Profile>({});
   const [editMode, setEditMode] = useState(false);
@@ -117,13 +118,7 @@ export default function MyPage() {
   const [isInterpolating, setIsInterpolating] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && !isLoggedIn) {
-      router.push("/");
-    }
-  }, [isLoading, isLoggedIn, router]);
-
-  useEffect(() => {
-    if (isLoggedIn) {
+    if (isLoggedIn && !isRedirecting) {
       loadProfile();
       loadScores();
       loadActiveExam();

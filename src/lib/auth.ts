@@ -64,7 +64,7 @@ export function useAuth() {
       window.location.href = url;
     } catch (error) {
       console.error("Failed to get login URL:", error);
-      alert("로그인 URL을 가져오는데 실패했습니다");
+      alert("현재 서버 점검 중입니다. 잠시 후 다시 시도해주세요.");
     }
   };
 
@@ -102,6 +102,35 @@ export function useAuth() {
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("accessToken");
+}
+
+/**
+ * 로그인 필수 페이지용 훅
+ * 로그인 안 되어 있으면 자동으로 카카오 로그인으로 리다이렉트
+ */
+export function useRequireAuth() {
+  const { isLoggedIn, isLoading } = useAuth();
+  const [isRedirecting, setIsRedirecting] = useState(false);
+
+  useEffect(() => {
+    const redirectToLogin = async () => {
+      if (!isLoading && !isLoggedIn && !isRedirecting) {
+        setIsRedirecting(true);
+        try {
+          const { url } = await getKakaoLoginUrl();
+          window.location.href = url;
+        } catch (error) {
+          console.error("Failed to get login URL:", error);
+          // 로그인 URL 가져오기 실패 시 홈으로
+          window.location.href = "/";
+        }
+      }
+    };
+
+    redirectToLogin();
+  }, [isLoading, isLoggedIn, isRedirecting]);
+
+  return { isLoggedIn, isLoading, isRedirecting };
 }
 
 /**

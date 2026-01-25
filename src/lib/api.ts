@@ -20,9 +20,18 @@ async function authFetch(url: string, options: RequestInit = {}): Promise<Respon
       // auth-change 이벤트 발생시켜서 UI 업데이트
       window.dispatchEvent(new Event("auth-change"));
 
-      // 현재 페이지가 로그인 콜백이 아니면 홈으로 리다이렉트
+      // 현재 페이지가 로그인 콜백이 아니면 카카오 로그인으로 리다이렉트
       if (!window.location.pathname.includes("/auth/")) {
-        alert("로그인이 만료되었습니다. 다시 로그인해주세요.");
+        try {
+          const loginUrlRes = await fetch(`${API_BASE_URL}/saas/auth/kakao/login-url`);
+          if (loginUrlRes.ok) {
+            const { url: loginUrl } = await loginUrlRes.json();
+            window.location.href = loginUrl;
+            return response;
+          }
+        } catch {
+          // 로그인 URL 가져오기 실패 시 홈으로
+        }
         window.location.href = "/";
       }
     }

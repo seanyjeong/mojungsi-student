@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth, getToken, useRequireProfile } from "@/lib/auth";
+import { useAuth, getToken, useRequireProfile, useRequireAuth } from "@/lib/auth";
 import {
   getSavedUniversities,
   toggleSaveUniversity,
@@ -283,7 +283,7 @@ function CutoffDisplay({
 
 export default function MyUniversitiesPage() {
   const router = useRouter();
-  const { isLoggedIn, isLoading } = useAuth();
+  const { isLoggedIn, isLoading, isRedirecting } = useRequireAuth();
   useRequireProfile();
   const [saved, setSaved] = useState<SavedUniversity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -304,16 +304,10 @@ export default function MyUniversitiesPage() {
   const [activeYear, setActiveYear] = useState<number>(2026);
 
   useEffect(() => {
-    if (!isLoading && !isLoggedIn) {
-      router.push("/");
-    }
-  }, [isLoading, isLoggedIn, router]);
-
-  useEffect(() => {
-    if (isLoggedIn) {
+    if (isLoggedIn && !isRedirecting) {
       loadData();
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, isRedirecting]);
 
   // 저장된 성적 로드 후, 첫 번째 가능한 시험 선택
   useEffect(() => {

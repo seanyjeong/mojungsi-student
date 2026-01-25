@@ -44,8 +44,9 @@ function CallbackContent() {
         }, 1000);
       })
       .catch((err) => {
+        console.error("Login callback error:", err);
         setStatus("error");
-        setErrorMsg(err.message || "로그인에 실패했습니다");
+        setErrorMsg("현재 서버 점검 중입니다. 잠시 후 다시 시도해주세요.");
       });
   }, [searchParams, router]);
 
