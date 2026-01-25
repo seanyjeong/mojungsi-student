@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useAuth, getToken, useRequireAuth } from "@/lib/auth";
 import { getProfile, updateProfile, getScores, saveScore, withdrawUser, getActiveYear, getActiveExam, interpolateScores, saveGachaejeomScore } from "@/lib/api";
 import { ScoreForm } from "@/types";
-import { User, Pencil, Save, Book, Calculator, Globe, Landmark, Search, AlertTriangle, X, CheckCircle, XCircle, Hand, Info, RefreshCw } from "lucide-react";
+import { User, Pencil, Save, Book, Calculator, Globe, Landmark, Search, AlertTriangle, X, Hand, Info, RefreshCw } from "lucide-react";
+import { showToast } from "@/components/toast";
 
 // DB 저장값과 화면 표시 라벨 매핑 (통일됨)
 const EXAM_TYPES = [
@@ -105,7 +106,6 @@ export default function MyPage() {
   const [scores, setScores] = useState<Record<string, ScoreData>>({});
   const [currentScore, setCurrentScore] = useState<ScoreData>({});
   const [scoreSaving, setScoreSaving] = useState(false);
-  const [message, setMessage] = useState("");
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [modalProfile, setModalProfile] = useState<{ name: string; school: string; gender: string; grade: string }>({ name: "", school: "", gender: "", grade: "" });
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
@@ -261,11 +261,9 @@ export default function MyPage() {
         gender: profile.gender,
       });
       setEditMode(false);
-      setMessage("프로필이 저장되었습니다!");
-      setTimeout(() => setMessage(""), 3000);
+      showToast("success", "프로필이 저장되었습니다");
     } catch (err) {
-      setMessage("프로필 저장에 실패했습니다");
-      setTimeout(() => setMessage(""), 3000);
+      showToast("error", "프로필 저장에 실패했습니다");
     } finally {
       setSaving(false);
     }
@@ -274,8 +272,7 @@ export default function MyPage() {
   // 모달에서 필수 정보 저장
   const handleSaveRequiredProfile = async () => {
     if (!modalProfile.gender || !modalProfile.grade) {
-      setMessage("성별과 학년을 모두 선택해주세요");
-      setTimeout(() => setMessage(""), 3000);
+      showToast("error", "성별과 학년을 모두 선택해주세요");
       return;
     }
 
@@ -297,11 +294,9 @@ export default function MyPage() {
         grade: modalProfile.grade,
       }));
       setShowProfileModal(false);
-      setMessage("정보가 저장되었습니다!");
-      setTimeout(() => setMessage(""), 3000);
+      showToast("success", "정보가 저장되었습니다");
     } catch (err) {
-      setMessage("저장에 실패했습니다");
-      setTimeout(() => setMessage(""), 3000);
+      showToast("error", "저장에 실패했습니다");
     } finally {
       setSaving(false);
     }
@@ -317,8 +312,7 @@ export default function MyPage() {
       logout();
       router.push("/");
     } catch (err) {
-      setMessage("회원탈퇴에 실패했습니다");
-      setTimeout(() => setMessage(""), 3000);
+      showToast("error", "회원탈퇴에 실패했습니다");
     } finally {
       setWithdrawing(false);
       setShowWithdrawConfirm(false);
@@ -379,18 +373,16 @@ export default function MyPage() {
       }
 
       setScores(prev => ({ ...prev, [selectedExam]: currentScore }));
-      setMessage("성적이 저장되었습니다!");
-      setTimeout(() => setMessage(""), 3000);
+      showToast("success", "성적이 저장되었습니다");
 
       // 성적 재로드 (edit_count 업데이트)
       loadScores();
     } catch (err: any) {
       if (err.message?.includes("수정 횟수")) {
-        setMessage("수정 횟수를 초과했습니다 (최대 2회)");
+        showToast("error", "수정 횟수를 초과했습니다 (최대 2회)");
       } else {
-        setMessage("저장에 실패했습니다");
+        showToast("error", "저장에 실패했습니다");
       }
-      setTimeout(() => setMessage(""), 3000);
     } finally {
       setScoreSaving(false);
     }
@@ -404,8 +396,7 @@ export default function MyPage() {
     setCalcExam(exam);
     try {
       await updateProfile(token, { calc_exam_type: exam });
-      setMessage(`"${EXAM_TYPES.find(e => e.value === exam)?.label || exam}" 성적으로 계산합니다!`);
-      setTimeout(() => setMessage(""), 3000);
+      showToast("success", `"${EXAM_TYPES.find(e => e.value === exam)?.label || exam}" 성적으로 계산합니다`);
     } catch (err) {
       console.error("Failed to save calc exam type:", err);
     }
@@ -494,22 +485,6 @@ export default function MyPage() {
           성적 관리
         </button>
       </div>
-
-      {/* Toast Notification */}
-      {message && (
-        <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-xl shadow-2xl text-base font-semibold transform transition-all duration-300 flex items-center gap-2 ${
-          message.includes("실패") || message.includes("초과")
-            ? "bg-gradient-to-r from-red-500 to-rose-500 text-white"
-            : "bg-gradient-to-r from-green-500 to-emerald-500 text-white"
-        }`}>
-          {message.includes("실패") || message.includes("초과") ? (
-            <XCircle className="w-5 h-5" />
-          ) : (
-            <CheckCircle className="w-5 h-5" />
-          )}
-          {message}
-        </div>
-      )}
 
       {/* Info Tab */}
       {activeTab === "info" && (
