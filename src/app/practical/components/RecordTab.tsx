@@ -176,9 +176,14 @@ function RecordModal({
 }) {
   const [eventName, setEventName] = useState(record?.event_name || "");
   const [recordValue, setRecordValue] = useState(record?.record || "");
-  const [recordDate, setRecordDate] = useState(
-    record?.record_date ? record.record_date.split("T")[0] : ""
-  );
+  const [recordDate, setRecordDate] = useState(() => {
+    if (record?.record_date) {
+      return record.record_date.split("T")[0];
+    }
+    // 로컬 시간 기준 오늘 날짜 (YYYY-MM-DD)
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  });
   const [memo, setMemo] = useState(record?.memo || "");
   const [saving, setSaving] = useState(false);
 

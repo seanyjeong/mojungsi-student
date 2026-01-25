@@ -90,10 +90,10 @@ export default function PracticalPage() {
     );
   }
 
-  const tabs: { id: TabType; label: string; icon: React.ReactNode }[] = [
-    { id: "records", label: "기록 관리", icon: <ClipboardList className="w-4 h-4" /> },
-    { id: "chart", label: "성장 그래프", icon: <LineChart className="w-4 h-4" /> },
-    { id: "settings", label: "종목 설정", icon: <Settings className="w-4 h-4" /> },
+  const tabs: { id: TabType; label: string; icon: React.ReactNode; desc: string }[] = [
+    { id: "records", label: "기록 관리", icon: <ClipboardList className="w-4 h-4" />, desc: "실기 종목별 기록을 입력하고 관리합니다" },
+    { id: "chart", label: "성장 그래프", icon: <LineChart className="w-4 h-4" />, desc: "시간에 따른 기록 변화를 그래프로 확인합니다" },
+    { id: "settings", label: "종목 설정", icon: <Settings className="w-4 h-4" />, desc: "실기 종목을 추가하거나 삭제합니다" },
   ];
 
   return (
@@ -120,6 +120,9 @@ export default function PracticalPage() {
           </button>
         ))}
       </div>
+      <p className="text-xs text-zinc-400 text-center -mt-2">
+        {tabs.find((t) => t.id === activeTab)?.desc}
+      </p>
 
       {/* Tab Content */}
       <div className="mt-4">
