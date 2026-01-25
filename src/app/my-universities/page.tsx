@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, getToken, useRequireProfile, useRequireAuth } from "@/lib/auth";
+import { useToast, showToast } from "@/components/toast";
 import {
   getSavedUniversities,
   toggleSaveUniversity,
@@ -285,6 +286,7 @@ export default function MyUniversitiesPage() {
   const router = useRouter();
   const { isLoggedIn, isLoading, isRedirecting } = useRequireAuth();
   useRequireProfile();
+  const toast = useToast();
   const [saved, setSaved] = useState<SavedUniversity[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUniv, setSelectedUniv] = useState<SavedUniversity | null>(
@@ -1023,7 +1025,7 @@ function UniversityModal({
       onUpdate();
       onClose();
     } catch (err) {
-      alert("저장 실패");
+      showToast("error", "저장 실패");
     } finally {
       setSaving(false);
     }

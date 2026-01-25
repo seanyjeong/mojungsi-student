@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { getKakaoLoginUrl, getMe, getProfile } from "./api";
+import { showToast } from "@/components/toast";
 
 export interface User {
   id: number;
@@ -64,7 +65,7 @@ export function useAuth() {
       window.location.href = url;
     } catch (error) {
       console.error("Failed to get login URL:", error);
-      alert("현재 서버 점검 중입니다. 잠시 후 다시 시도해주세요.");
+      showToast("error", "현재 서버 점검 중입니다. 잠시 후 다시 시도해주세요.");
     }
   };
 

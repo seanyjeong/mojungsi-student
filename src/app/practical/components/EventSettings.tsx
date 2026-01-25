@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { getToken } from "@/lib/auth";
 import { createEventType, updateEventType, deleteEventType, EventType } from "@/lib/api";
+import { showToast } from "@/components/toast";
 
 interface EventSettingsProps {
   eventTypes: EventType[];
@@ -37,7 +38,7 @@ export default function EventSettings({ eventTypes, onRefresh }: EventSettingsPr
       await deleteEventType(token, event.id);
       onRefresh();
     } catch {
-      alert("삭제 실패");
+      showToast("error", "삭제 실패");
     }
   };
 
@@ -151,7 +152,7 @@ function EventModal({
 
   const handleSave = async () => {
     if (!name.trim()) {
-      alert("종목명을 입력하세요");
+      showToast("error", "종목명을 입력하세요");
       return;
     }
     const token = getToken();
@@ -176,9 +177,9 @@ function EventModal({
       onClose();
     } catch (err: any) {
       if (err.message?.includes("unique")) {
-        alert("이미 같은 이름의 종목이 있습니다");
+        showToast("error", "이미 같은 이름의 종목이 있습니다");
       } else {
-        alert("저장 실패");
+        showToast("error", "저장 실패");
       }
     } finally {
       setSaving(false);

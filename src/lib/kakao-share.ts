@@ -1,4 +1,5 @@
 // 카카오 공유 유틸리티
+import { showToast } from "@/components/toast";
 
 declare global {
   interface Window {
@@ -49,7 +50,7 @@ export function initKakao() {
 // 점수 공유 (텍스트형 - 글자수 제한 적음, 링크 클릭 가능)
 export function shareScore(data: ShareScoreData): boolean {
   if (typeof window === "undefined" || !window.Kakao) {
-    alert("카카오 SDK를 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
+    showToast("error", "카카오 SDK를 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
     return false;
   }
 
@@ -111,7 +112,7 @@ ${scoreParts.join(" · ")}${practicalLines}`;
     return true;
   } catch (error) {
     console.error("Kakao share error:", error);
-    alert("공유에 실패했습니다. 다시 시도해주세요.");
+    showToast("error", "공유에 실패했습니다. 다시 시도해주세요.");
     return false;
   }
 }
@@ -119,7 +120,7 @@ ${scoreParts.join(" · ")}${practicalLines}`;
 // 카드형 공유 (이미지 포함)
 export function shareScoreCard(data: ShareScoreData): boolean {
   if (typeof window === "undefined" || !window.Kakao) {
-    alert("카카오 SDK를 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
+    showToast("error", "카카오 SDK를 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
     return false;
   }
 
@@ -171,7 +172,7 @@ export function shareScoreCard(data: ShareScoreData): boolean {
     return true;
   } catch (error) {
     console.error("Kakao share error:", error);
-    alert("공유에 실패했습니다. 다시 시도해주세요.");
+    showToast("error", "공유에 실패했습니다. 다시 시도해주세요.");
     return false;
   }
 }

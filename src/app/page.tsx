@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, getToken } from "@/lib/auth";
+import { useToast } from "@/components/toast";
 import { getScores, getActiveYear, getLatestNotices, markNoticeAsRead, Notice } from "@/lib/api";
 import { Search, Heart, Dumbbell, User, Bell, X, AlertTriangle, Sparkles, ClipboardList } from "lucide-react";
 import Link from "next/link";
@@ -16,6 +17,7 @@ const typeStyles = {
 export default function HomePage() {
   const router = useRouter();
   const { isLoggedIn, isLoading } = useAuth();
+  const toast = useToast();
   const [hasScores, setHasScores] = useState(false);
   const [notices, setNotices] = useState<Notice[]>([]);
   const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
@@ -125,7 +127,7 @@ export default function HomePage() {
               onClick={(e) => {
                 if (isDisabled) {
                   e.preventDefault();
-                  alert("로그인이 필요합니다");
+                  toast.error("로그인이 필요합니다");
                 }
               }}
               className={`bg-white dark:bg-zinc-800 rounded-xl p-4 shadow-sm transition ${

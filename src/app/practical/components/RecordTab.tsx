@@ -9,6 +9,7 @@ import {
   deletePracticalRecord,
   EventType,
 } from "@/lib/api";
+import { showToast } from "@/components/toast";
 
 interface PracticalRecord {
   id: number;
@@ -36,7 +37,7 @@ export default function RecordTab({ records, eventTypes, onRefresh }: RecordTabP
       await deletePracticalRecord(token, id);
       onRefresh();
     } catch {
-      alert("삭제 실패");
+      showToast("error", "삭제 실패");
     }
   };
 
@@ -185,7 +186,7 @@ function RecordModal({
 
   const handleSave = async () => {
     if (!eventName) {
-      alert("종목을 선택하세요");
+      showToast("error", "종목을 선택하세요");
       return;
     }
     const token = getToken();
@@ -210,7 +211,7 @@ function RecordModal({
       onSave();
       onClose();
     } catch {
-      alert("저장 실패");
+      showToast("error", "저장 실패");
     } finally {
       setSaving(false);
     }

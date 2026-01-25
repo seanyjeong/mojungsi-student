@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef, memo } from "react";
 import { useAuth, getToken, useRequireProfile } from "@/lib/auth";
+import { useToast } from "@/components/toast";
 import { getUniversities, calculateAll, toggleSaveUniversity, getSavedUniversities, getProfile, getScores, getActiveYear, getActiveExam } from "@/lib/api";
 import { ScoreForm } from "@/types";
 import { Heart, Filter, MapPin, Users, TrendingUp, ChevronDown, ChevronUp, Info, AlertCircle } from "lucide-react";
@@ -167,6 +168,7 @@ const 지역목록 = ["서울", "경기", "인천", "강원", "충북", "충남"
 export default function SearchPage() {
   const { isLoggedIn } = useAuth();
   const { isProfileComplete } = useRequireProfile();
+  const toast = useToast();
   const [universities, setUniversities] = useState<CalculatedUniv[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedGun, setSelectedGun] = useState("전체");
@@ -345,7 +347,7 @@ export default function SearchPage() {
   // useCallback으로 메모이제이션 (rerender-memo 최적화)
   const handleToggleSave = useCallback(async (uId: number, score?: number) => {
     if (!isLoggedIn) {
-      alert("로그인이 필요합니다");
+      toast.error("로그인이 필요합니다");
       return;
     }
     const token = getToken();
@@ -362,7 +364,7 @@ export default function SearchPage() {
     } finally {
       setSavingId(null);
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, toast]);
 
   const filteredUniversities = useMemo(() => {
     return universities.filter((u) => {
