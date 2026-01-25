@@ -10,6 +10,7 @@ import {
   EventType,
 } from "@/lib/api";
 import { showToast } from "@/components/toast";
+import { showSuccess } from "@/components/success-modal";
 
 interface PracticalRecord {
   id: number;
@@ -215,6 +216,7 @@ function RecordModal({
       }
       onSave();
       onClose();
+      showSuccess(record ? "기록이 수정되었습니다" : "기록이 저장되었습니다");
     } catch {
       showToast("error", "저장 실패");
     } finally {

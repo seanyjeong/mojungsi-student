@@ -15,6 +15,7 @@ import {
 import { getToken } from "@/lib/auth";
 import { createEventType, updateEventType, deleteEventType, EventType } from "@/lib/api";
 import { showToast } from "@/components/toast";
+import { showSuccess } from "@/components/success-modal";
 
 interface EventSettingsProps {
   eventTypes: EventType[];
@@ -175,6 +176,7 @@ function EventModal({
       }
       onSave();
       onClose();
+      showSuccess(event ? "종목이 수정되었습니다" : "종목이 추가되었습니다");
     } catch (err: any) {
       if (err.message?.includes("unique")) {
         showToast("error", "이미 같은 이름의 종목이 있습니다");

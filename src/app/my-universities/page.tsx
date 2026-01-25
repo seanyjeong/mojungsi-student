@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, getToken, useRequireProfile, useRequireAuth } from "@/lib/auth";
 import { useToast, showToast } from "@/components/toast";
+import { showSuccess } from "@/components/success-modal";
 import {
   getSavedUniversities,
   toggleSaveUniversity,
@@ -1024,6 +1025,7 @@ function UniversityModal({
       });
       onUpdate();
       onClose();
+      showSuccess("저장되었습니다");
     } catch (err) {
       showToast("error", "저장 실패");
     } finally {

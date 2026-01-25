@@ -6,6 +6,7 @@ import { BottomNav } from "@/components/bottom-nav";
 import { Header } from "@/components/header";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
 import { ToastProvider } from "@/components/toast";
+import { SuccessModalProvider } from "@/components/success-modal";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -50,12 +51,14 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ToastProvider>
-          <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 pb-20 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-100 via-transparent to-transparent dark:from-blue-900/20">
-            <Header />
-            <main className="max-w-2xl mx-auto px-4 py-6">{children}</main>
-          </div>
-          <BottomNav />
-          <ServiceWorkerRegister />
+          <SuccessModalProvider>
+            <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 pb-20 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-100 via-transparent to-transparent dark:from-blue-900/20">
+              <Header />
+              <main className="max-w-2xl mx-auto px-4 py-6">{children}</main>
+            </div>
+            <BottomNav />
+            <ServiceWorkerRegister />
+          </SuccessModalProvider>
         </ToastProvider>
         <Script
           src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"

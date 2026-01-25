@@ -7,6 +7,7 @@ import { getProfile, updateProfile, getScores, saveScore, withdrawUser, getActiv
 import { ScoreForm } from "@/types";
 import { User, Pencil, Save, Book, Calculator, Globe, Landmark, Search, AlertTriangle, X, Hand, Info, RefreshCw } from "lucide-react";
 import { showToast } from "@/components/toast";
+import { showSuccess } from "@/components/success-modal";
 
 // DB 저장값과 화면 표시 라벨 매핑 (통일됨)
 const EXAM_TYPES = [
@@ -261,7 +262,7 @@ export default function MyPage() {
         gender: profile.gender,
       });
       setEditMode(false);
-      showToast("success", "프로필이 저장되었습니다");
+      showSuccess("프로필이 저장되었습니다");
     } catch (err) {
       showToast("error", "프로필 저장에 실패했습니다");
     } finally {
@@ -294,7 +295,7 @@ export default function MyPage() {
         grade: modalProfile.grade,
       }));
       setShowProfileModal(false);
-      showToast("success", "정보가 저장되었습니다");
+      showSuccess("정보가 저장되었습니다");
     } catch (err) {
       showToast("error", "저장에 실패했습니다");
     } finally {
@@ -373,7 +374,7 @@ export default function MyPage() {
       }
 
       setScores(prev => ({ ...prev, [selectedExam]: currentScore }));
-      showToast("success", "성적이 저장되었습니다");
+      showSuccess("성적이 저장되었습니다");
 
       // 성적 재로드 (edit_count 업데이트)
       loadScores();
@@ -396,7 +397,7 @@ export default function MyPage() {
     setCalcExam(exam);
     try {
       await updateProfile(token, { calc_exam_type: exam });
-      showToast("success", `"${EXAM_TYPES.find(e => e.value === exam)?.label || exam}" 성적으로 계산합니다`);
+      showSuccess(`${EXAM_TYPES.find(e => e.value === exam)?.label || exam} 성적으로 계산`);
     } catch (err) {
       console.error("Failed to save calc exam type:", err);
     }
